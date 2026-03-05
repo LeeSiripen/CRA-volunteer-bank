@@ -1335,11 +1335,21 @@ function loadPendingLogs(){
   callAPI('getPendingLogs',currentAdmin.project!=='ALL'?{project:currentAdmin.project}:{}).then(function(res){
     if(!res.success||!res.data.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">✅ ไม่มีรายการรออนุมัติ</td></tr>';return;}
     tbody.innerHTML='';
-    res.data.forEach(function(log){tbody.innerHTML+='<tr><td><strong>'+log.fullName+'</strong></td><td>'+log.volunteerCode+'</td><td>'+log.organizer+'</td><td>'+log.date+'</td><td><strong>'+log.hours+' ชม.</strong></td><td><span class="status-pill pill-orange">รออนุมัติ</span></td><td style="display:flex;gap:6px;"><button onclick="approveLog('+log.logId+','อนุมัติ')" style="background:#27ae60;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">✅ อนุมัติ</button><button onclick="approveLog('+log.logId+','ปฏิเสธ')" style="background:#e74c3c;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">❌ ปฏิเสธ</button></td></tr>';});
+    res.data.forEach(function(log){
+      var btn = '<tr><td><strong>'+log.fullName+'</strong></td><td>'+log.volunteerCode+'</td><td>'+log.organizer+'</td><td>'+log.date+'</td>'
+              + '<td><strong>'+log.hours+' ชม.</strong></td>'
+              + '<td><span class="status-pill pill-orange">รออนุมัติ</span></td>'
+              + '<td style="display:flex;gap:6px;">'
+              + '<button onclick="approveLog('+log.logId+',1)" style="background:#27ae60;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">✅ อนุมัติ</button>'
+              + '<button onclick="approveLog('+log.logId+',0)" style="background:#e74c3c;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">❌ ปฏิเสธ</button>'
+              + '</td></tr>';
+      tbody.innerHTML += btn;
+    });
   });
 }
-function approveLog(logId,status){
-  if(!confirm('ยืนยันการ'+(status==='อนุมัติ'?'อนุมัติ':'ปฏิเสธ')+'?')) return;
+function approveLog(logId,flag){
+  var status = flag===1 ? 'อนุมัติ' : 'ปฏิเสธ';
+  if(!confirm('ยืนยันการ'+status+'?')) return;
   callAPI('updateLogStatus',{logId:logId,status:status,approver:currentAdmin.name}).then(function(res){
     showToast(res.success?'✅ สำเร็จ':'❌ '+res.message); if(res.success) loadPendingLogs();
   });
