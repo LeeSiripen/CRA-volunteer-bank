@@ -1050,6 +1050,216 @@
 </div>
 
 <script>
+  // ============================================================
+  // ใส่ URL ของ Apps Script ที่ Deploy แล้วตรงนี้
+  // ============================================================
+  var APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+  var volunteerData = null;
+
+  // ── API Helper ──────────────────────────────────────────────
+  function callAPI(action, params) {
+    var url = APPS_SCRIPT_URL + '?action=' + action;
+    if (params) {
+      Object.keys(params).forEach(function(k) {
+        url += '&' + k + '=' + encodeURIComponent(params[k]);
+      });
+    }
+    return fetch(url)
+      .then(function(r) { return r.json(); })
+      .catch(function() { return { success: false, message: 'เชื่อมต่อ API ไม่ได้' }; });
+  }
+
+  // ── โหลดกิจกรรมจาก Google Sheets ──────────────────────────
+  function loadActivities() {
+    if (APPS_SCRIPT_URL === https://script.google.com/macros/s/AKfycbwplSLZ3_I5hLQtr-Unhk_QC3zlGCs4i1_Oqpvvxn5oF3RwY-3xWCCLqWyO2Znl25mF/exec) {
+      console.log('Demo mode: ใช้ข้อมูล Mock');
+      return;
+    }
+    callAPI('getActivities').then(function(res) {
+      if (!res.success) return;
+      var tbody = document.querySelector('#activitiesTable tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      res.data.forEach(function(a) {
+        var pct = Math.round((a.registered / a.capacity) * 100);
+        var statusClass = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
+        tbody.innerHTML += '<tr>' +
+          '<td><strong>' + a.name + '</strong></td>' +
+          '<td>' + a.type + '</td>' +
+          '<td>' + a.date + '</td>' +
+          '<td>' + a.hours + ' ชม.</td>' +
+          '<td>' + a.organizer + '</td>' +
+          '<td>' + a.registered + '/' + a.capacity + '</td>' +
+          '<td><span class="status-pill ' + statusClass + '">' + a.status + '</span></td>' +
+          '<td>' + (a.status === 'เปิดรับ' ?
+            '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="selectActivity(' + JSON.stringify(a).replace(/"/g,'&quot;') + ')">สมัคร</button>' :
+            '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>') +
+          '</td></tr>';
+      });
+    });
+  }
+
+  function selectActivity(act) {
+    showPage('register-time');
+    var sel = document.getElementById('activitySelect');
+    if (sel) {
+      // เพิ่ม option ถ้ายังไม่มี
+      var opt = new Option(act.name + ' (' + act.date + ')', act.id);
+      opt.dataset.organizer = act.organizer;
+      opt.dataset.hours = act.hours;
+      sel.add(opt);
+      sel.value = act.id;
+    }
+  }
+
+  // ── ดึงข้อมูลจิตอาสา ────────────────────────────────────────
+  function lookupVolunteer(code) {
+    if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+    callAPI('getVolunteer', { code: code }).then(function(res) {
+      if (!res.success) { showAlert('ไม่พบข้อมูล: ' + res.message); return; }
+      volunteerData = res.data;
+      fillVolunteerFields(res.data);
+    });
+  }
+
+  function fillVolunteerFields(v) {
+    var fields = {
+      'volCode': v.code, 'volName': v.firstName + ' ' + v.lastName,
+      'volPosition': v.position, 'volDept': v.department,
+      'volPhone': v.phone, 'volEmail': v.email
+    };
+    Object.keys(fields).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = fields[id];
+    });
+  }
+
+  // ── บันทึกเวลา ───────────────────────────────────────────────
+  function submitTimeLog() {
+    if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      showSuccess();
+      return;
+    }
+    var sel = document.getElementById('activitySelect');
+    var actId = sel ? sel.value : '';
+    var organizer = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].dataset.organizer : '';
+    var hours = document.getElementById('hoursInput') ? document.getElementById('hoursInput').value : 0;
+    var date  = document.getElementById('dateInput')  ? document.getElementById('dateInput').value  : '';
+
+    if (!volunteerData) { showAlert('กรุณาค้นหารหัสจิตอาสาก่อน'); return; }
+    if (!actId) { showAlert('กรุณาเลือกกิจกรรม'); return; }
+    if (!hours || hours < 1 || hours > 40) { showAlert('กรุณาระบุชั่วโมง 1-40'); return; }
+
+    callAPI('registerTime', {
+      activityId: actId,
+      volunteerCode: volunteerData.code,
+      fullName: volunteerData.firstName + ' ' + volunteerData.lastName,
+      date: date, startTime: '', hours: hours,
+      organizer: organizer, note: ''
+    }).then(function(res) {
+      if (res.success) showSuccess();
+      else showAlert(res.message);
+    });
+  }
+
+  // ── โหลดประวัติ ──────────────────────────────────────────────
+  function loadHistory(code) {
+    if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+    callAPI('getHistory', { code: code }).then(function(res) {
+      if (!res.success) return;
+      var tbody = document.querySelector('#historyTable tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      var total = 0;
+      res.data.forEach(function(log) {
+        total += Number(log.hours);
+        var sc = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
+        tbody.innerHTML += '<tr><td>' + log.date + '</td><td>' + log.organizer + '</td>' +
+          '<td>' + log.hours + ' ชม.</td><td>' + total + ' ชม.</td>' +
+          '<td><span class="status-pill ' + sc + '">' + log.status + '</span></td></tr>';
+      });
+      var totalEl = document.getElementById('totalHours');
+      if (totalEl) totalEl.textContent = total;
+    });
+  }
+
+  // ── สรุป ────────────────────────────────────────────────────
+  function loadSummary() {
+    if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+    callAPI('getSummary').then(function(res) {
+      if (!res.success) return;
+      var map = {
+        'statTotal': 'จิตอาสาทั้งหมด', 'statStaff': 'บุคลากร',
+        'statStudent': 'นักศึกษา', 'statHours': 'ชั่วโมงที่อนุมัติแล้ว'
+      };
+      Object.keys(map).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && res.data[map[id]] !== undefined) el.textContent = res.data[map[id]];
+      });
+    });
+  }
+
+  // ── UI Helpers ──────────────────────────────────────────────
+  function showAlert(msg) {
+    alert(msg);
+  }
+
+  function acceptPDPA() {
+    var c1 = document.getElementById('chk1').checked;
+    if (!c1) { alert('กรุณายืนยันการยินยอม PDPA ก่อนดำเนินการ'); return; }
+    document.getElementById('pdpaModal').style.cssText = 'display:none!important';
+    loadActivities();
+    loadSummary();
+  }
+
+  function denyPDPA() {
+    alert('ขออภัย ไม่สามารถใช้งานระบบได้โดยไม่ยินยอม PDPA');
+  }
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('page-' + id).classList.add('active');
+    document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
+    var navBtn = document.getElementById('nav-' + id);
+    if (navBtn) navBtn.classList.add('active');
+    window.scrollTo(0, 0);
+    if (id === 'history' && volunteerData) loadHistory(volunteerData.code);
+    if (id === 'report') loadSummary();
+  }
+
+  function switchTab(btn, targetId) {
+    var tabs = btn.closest('.tabs');
+    tabs.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var el = tabs.nextElementSibling;
+    while (el) {
+      if (el.id) el.style.display = 'none';
+      el = el.nextElementSibling;
+    }
+    document.getElementById(targetId).style.display = 'block';
+  }
+
+  function showSuccess() {
+    var t = document.getElementById('toast');
+    t.style.display = 'block';
+    setTimeout(function() { t.style.display = 'none'; showPage('history'); }, 2000);
+  }
+
+  // Init
+  (function() {
+    ['tab-record','hist-b','rep-person','rep-cert'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  })();
+</script>
+<!-- Toast -->
+<div id="toast" style="display:none;position:fixed;bottom:32px;right:32px;background:#27ae60;color:white;padding:16px 24px;border-radius:14px;box-shadow:0 8px 32px rgba(39,174,96,.4);z-index:9999;font-weight:600;font-size:15px;">
+  ✅ บันทึกข้อมูลสำเร็จ!
+</div>
+
+<script>
   function acceptPDPA() {
     var c1 = document.getElementById('chk1').checked;
     if (!c1) {
