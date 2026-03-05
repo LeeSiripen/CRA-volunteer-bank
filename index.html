@@ -387,6 +387,9 @@
         👤 น.ส.สมใจ
         <span class="notif-dot"></span>
       </button>
+      <button onclick="showAdminLogin()" id="nav-admin" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;margin-left:4px;">
+        🔐 Admin
+      </button>
     </nav>
   </div>
 </header>
@@ -1053,7 +1056,7 @@
   // ============================================================
   // ใส่ URL ของ Apps Script ที่ Deploy แล้วตรงนี้
   // ============================================================
-  var APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwplSLZ3_I5hLQtr-Unhk_QC3zlGCs4i1_Oqpvvxn5oF3RwY-3xWCCLqWyO2Znl25mF/exec';
 
   var volunteerData = null;
 
@@ -1072,7 +1075,7 @@
 
   // ── โหลดกิจกรรมจาก Google Sheets ──────────────────────────
   function loadActivities() {
-    if (APPS_SCRIPT_URL === https://script.google.com/macros/s/AKfycbwplSLZ3_I5hLQtr-Unhk_QC3zlGCs4i1_Oqpvvxn5oF3RwY-3xWCCLqWyO2Znl25mF/exec) {
+    if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
       console.log('Demo mode: ใช้ข้อมูล Mock');
       return;
     }
@@ -1308,6 +1311,416 @@
       if (el) el.style.display = 'none';
     });
   })();
+
+  // ============================================================
+  // ADMIN SYSTEM
+  // ============================================================
+
+  // Admin accounts (เพิ่ม/แก้ไขได้ตรงนี้)
+  var ADMIN_ACCOUNTS = {
+    'admin':       { pass: 'cra2568',    name: 'Super Admin',        project: 'ALL' },
+    'gkicka':      { pass: 'kicka2568',  name: 'กองกิจการนักศึกษา', project: 'กองกิจการนักศึกษา' },
+    'nursing':     { pass: 'nurse2568',  name: 'คณะพยาบาลศาสตร์',   project: 'คณะพยาบาลศาสตร์' },
+    'edu':         { pass: 'edu2568',    name: 'คณะครุศาสตร์',       project: 'คณะครุศาสตร์' },
+  };
+
+  var currentAdmin = null;
+
+  function showAdminLogin() {
+    var m = document.getElementById('adminLoginModal');
+    m.style.display = 'flex';
+    document.getElementById('adminLoginError').style.display = 'none';
+    document.getElementById('adminUser').value = '';
+    document.getElementById('adminPass').value = '';
+    setTimeout(function(){ document.getElementById('adminUser').focus(); }, 100);
+  }
+
+  function closeAdminLogin() {
+    document.getElementById('adminLoginModal').style.display = 'none';
+  }
+
+  function doAdminLogin() {
+    var user = document.getElementById('adminUser').value.trim().toLowerCase();
+    var pass = document.getElementById('adminPass').value;
+    var errEl = document.getElementById('adminLoginError');
+
+    if (ADMIN_ACCOUNTS[user] && ADMIN_ACCOUNTS[user].pass === pass) {
+      currentAdmin = { username: user, ...ADMIN_ACCOUNTS[user] };
+      closeAdminLogin();
+      document.getElementById('adminWelcome').textContent =
+        'ยินดีต้อนรับ ' + currentAdmin.name +
+        (currentAdmin.project !== 'ALL' ? ' | โครงการ: ' + currentAdmin.project : ' | ดูแลทุกโครงการ');
+      showPage('admin');
+      loadPendingLogs();
+      loadAdminActivities();
+      loadAdminReport();
+    } else {
+      errEl.style.display = 'block';
+    }
+  }
+
+  function adminLogout() {
+    currentAdmin = null;
+    showPage('home');
+  }
+
+  // ── โหลดรายการรออนุมัติ ─────────────────────────────────────
+  function loadPendingLogs() {
+    var tbody = document.getElementById('pendingLogsTable');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#6b7c93;">กำลังโหลด...</td></tr>';
+
+    callAPI('getPendingLogs', currentAdmin.project !== 'ALL' ? { project: currentAdmin.project } : {})
+      .then(function(res) {
+        if (!res.success || !res.data.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">✅ ไม่มีรายการรออนุมัติ</td></tr>';
+          return;
+        }
+        tbody.innerHTML = '';
+        res.data.forEach(function(log) {
+          tbody.innerHTML += '<tr>' +
+            '<td><strong>' + log.fullName + '</strong></td>' +
+            '<td>' + log.volunteerCode + '</td>' +
+            '<td>' + log.organizer + '</td>' +
+            '<td>' + log.date + '</td>' +
+            '<td><strong>' + log.hours + ' ชม.</strong></td>' +
+            '<td><span class="status-pill pill-orange">รออนุมัติ</span></td>' +
+            '<td style="display:flex;gap:6px;">' +
+              '<button onclick="approveLog(' + log.logId + ','อนุมัติ')" style="background:#27ae60;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">✅ อนุมัติ</button>' +
+              '<button onclick="approveLog(' + log.logId + ','ปฏิเสธ')" style="background:#e74c3c;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">❌ ปฏิเสธ</button>' +
+            '</td></tr>';
+        });
+      });
+  }
+
+  function approveLog(logId, status) {
+    var label = status === 'อนุมัติ' ? 'อนุมัติ' : 'ปฏิเสธ';
+    if (!confirm('ยืนยันการ' + label + ' Log #' + logId + ' ?')) return;
+    callAPI('updateLogStatus', { logId: logId, status: status, approver: currentAdmin.name })
+      .then(function(res) {
+        alert(res.success ? '✅ ' + label + 'เรียบร้อย' : '❌ ' + res.message);
+        if (res.success) loadPendingLogs();
+      });
+  }
+
+  // ── จัดการกิจกรรม ───────────────────────────────────────────
+  function loadAdminActivities() {
+    var tbody = document.getElementById('adminActivitiesTable');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#6b7c93;">กำลังโหลด...</td></tr>';
+    callAPI('getActivities').then(function(res) {
+      if (!res.success) return;
+      var acts = res.data.filter(function(a) {
+        return currentAdmin.project === 'ALL' || a.organizer === currentAdmin.project;
+      });
+      tbody.innerHTML = '';
+      // Populate filter dropdown
+      var sel = document.getElementById('filterActivity');
+      sel.innerHTML = '<option value="">-- เลือกกิจกรรม --</option>';
+      acts.forEach(function(a) {
+        sel.innerHTML += '<option value="' + a.id + '">' + a.name + '</option>';
+        var sc = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
+        tbody.innerHTML += '<tr>' +
+          '<td><strong>' + a.name + '</strong></td>' +
+          '<td>' + a.type + '</td>' +
+          '<td>' + a.date + '</td>' +
+          '<td>' + a.hours + ' ชม.</td>' +
+          '<td>' + a.registered + '/' + a.capacity + '</td>' +
+          '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>' +
+          '<td><button onclick="toggleActivityStatus(' + a.id + ','' + a.status + '')" style="background:#1a5f7a;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;">แก้สถานะ</button></td>' +
+          '</tr>';
+      });
+      if (!acts.length) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">ไม่มีกิจกรรม</td></tr>';
+    });
+  }
+
+  function showAddActivity() {
+    var f = document.getElementById('addActivityForm');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function submitAddActivity() {
+    var name = document.getElementById('act_name').value.trim();
+    var type = document.getElementById('act_type').value;
+    var date = document.getElementById('act_date').value;
+    var hours = document.getElementById('act_hours').value;
+    var cap = document.getElementById('act_cap').value;
+    var loc = document.getElementById('act_loc').value;
+    var detail = document.getElementById('act_detail').value;
+    if (!name || !date || !hours || !cap) { alert('กรุณากรอกข้อมูลให้ครบ'); return; }
+    callAPI('addActivity', {
+      name: name, type: type, date: date, hours: hours,
+      capacity: cap, organizer: currentAdmin.project !== 'ALL' ? currentAdmin.project : 'Admin',
+      location: loc, detail: detail
+    }).then(function(res) {
+      alert(res.success ? '✅ เพิ่มกิจกรรมสำเร็จ' : '❌ ' + res.message);
+      if (res.success) { document.getElementById('addActivityForm').style.display='none'; loadAdminActivities(); }
+    });
+  }
+
+  function toggleActivityStatus(id, current) {
+    var newStatus = current === 'เปิดรับ' ? 'ปิดรับ' : 'เปิดรับ';
+    if (!confirm('เปลี่ยนสถานะเป็น "' + newStatus + '" ?')) return;
+    callAPI('updateActivityStatus', { activityId: id, status: newStatus })
+      .then(function(res) {
+        if (res.success) loadAdminActivities();
+        else alert('❌ ' + res.message);
+      });
+  }
+
+  // ── รายชื่อผู้สมัคร ──────────────────────────────────────────
+  function loadMembers() {
+    var actId = document.getElementById('filterActivity').value;
+    if (!actId) { alert('กรุณาเลือกกิจกรรมก่อน'); return; }
+    callAPI('getMembersByActivity', { activityId: actId }).then(function(res) {
+      var tbody = document.getElementById('membersTable');
+      if (!res.success || !res.data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">ไม่มีผู้สมัคร</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      res.data.forEach(function(m) {
+        var sc = m.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
+        tbody.innerHTML += '<tr>' +
+          '<td>' + m.volunteerCode + '</td>' +
+          '<td><strong>' + m.fullName + '</strong></td>' +
+          '<td>' + (m.type||'-') + '</td>' +
+          '<td>' + (m.department||'-') + '</td>' +
+          '<td>' + m.date + '</td>' +
+          '<td>' + m.hours + ' ชม.</td>' +
+          '<td><span class="status-pill ' + sc + '">' + m.status + '</span></td></tr>';
+      });
+    });
+  }
+
+  function exportMembers() {
+    alert('ฟีเจอร์ Export จะพร้อมใช้งานเร็วๆ นี้ครับ');
+  }
+
+  // ── เกียรติบัตร ──────────────────────────────────────────────
+  function issueCerts(level, minHours) {
+    var levelName = level === 'gold' ? 'ทอง' : level === 'silver' ? 'เงิน' : 'ทองแดง';
+    if (!confirm('ออกเกียรติบัตรระดับ' + levelName + ' (ครบ ' + minHours + ' ชม.) ทั้งหมด?')) return;
+    callAPI('issueCertificates', { minHours: minHours, level: levelName, approver: currentAdmin.name })
+      .then(function(res) {
+        var el = document.getElementById('certResult');
+        el.style.display = 'block';
+        el.innerHTML = res.success
+          ? '✅ ออกเกียรติบัตรระดับ' + levelName + ' จำนวน <strong>' + (res.count||0) + ' ใบ</strong> เรียบร้อย'
+          : '❌ ' + res.message;
+      });
+  }
+
+  // ── รายงาน Admin ─────────────────────────────────────────────
+  function loadAdminReport() {
+    callAPI('getAdminReport', { project: currentAdmin.project }).then(function(res) {
+      if (!res.success) return;
+      var d = res.data;
+      var set = function(id, val) { var e = document.getElementById(id); if(e) e.textContent = val; };
+      set('adminStatAct',     d['กิจกรรม']    || '-');
+      set('adminStatVol',     d['จิตอาสา']    || '-');
+      set('adminStatHours',   d['ชั่วโมง']    || '-');
+      set('adminStatPending', d['รออนุมัติ']  || '-');
+    });
+  }
 </script>
+
+<!-- Admin Login Modal -->
+<div id="adminLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;">🔐</div>
+      <h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-top:8px;">Admin เข้าสู่ระบบ</h2>
+      <p style="font-size:13px;color:#6b7c93;margin-top:4px;">สำหรับผู้ดูแลโครงการจิตอาสา</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:6px;">Username</label>
+        <input id="adminUser" type="text" placeholder="กรอก Username" style="width:100%;padding:11px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:6px;">Password</label>
+        <input id="adminPass" type="password" placeholder="กรอก Password" style="width:100%;padding:11px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      </div>
+      <div id="adminLoginError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px 14px;font-size:13px;color:#9a1f14;">
+        ❌ Username หรือ Password ไม่ถูกต้อง
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:24px;">
+      <button onclick="doAdminLogin()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#1a5f7a;color:white;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">เข้าสู่ระบบ</button>
+      <button onclick="closeAdminLogin()" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Panel Page -->
+<div id="page-admin" class="page" style="display:none;">
+
+  <!-- Admin Header Bar -->
+  <div style="background:linear-gradient(135deg,#0d3d52,#1a5f7a);border-radius:16px;padding:24px 28px;color:white;display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+    <div>
+      <div style="font-family:Prompt,sans-serif;font-size:20px;font-weight:700;">🔐 Admin Panel</div>
+      <div style="font-size:13px;opacity:.8;margin-top:4px;" id="adminWelcome">ยินดีต้อนรับ Admin</div>
+    </div>
+    <button onclick="adminLogout()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:8px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">ออกจากระบบ</button>
+  </div>
+
+  <!-- Admin Tabs -->
+  <div class="tabs" style="margin-bottom:24px;">
+    <button class="tab-btn active" onclick="switchTab(this,'admin-approve')">✅ อนุมัติเวลา</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-activities')">📋 จัดการกิจกรรม</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-members')">👥 ผู้สมัคร</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-cert')">🏆 เกียรติบัตร</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-report')">📊 รายงาน</button>
+  </div>
+
+  <!-- Tab: อนุมัติเวลา -->
+  <div id="admin-approve">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">รายการรออนุมัติ</div>
+      <button onclick="loadPendingLogs()" style="background:#1a5f7a;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">🔄 โหลดใหม่</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ชื่อจิตอาสา</th><th>รหัส</th><th>กิจกรรม</th><th>วันที่</th><th>ชั่วโมง</th><th>สถานะ</th><th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="pendingLogsTable">
+          <tr><td colspan="7" style="text-align:center;color:#6b7c93;padding:24px;">กดปุ่ม "โหลดใหม่" เพื่อดึงข้อมูล</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: จัดการกิจกรรม -->
+  <div id="admin-activities" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">กิจกรรมของโครงการ</div>
+      <button onclick="showAddActivity()" style="background:#27ae60;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">➕ เพิ่มกิจกรรม</button>
+    </div>
+
+    <!-- Add Activity Form -->
+    <div id="addActivityForm" style="display:none;background:white;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(26,95,122,.1);margin-bottom:24px;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:18px;color:#0d3d52;">➕ เพิ่มกิจกรรมใหม่</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:13px;font-weight:600;">ชื่อกิจกรรม *</label>
+          <input id="act_name" type="text" placeholder="ชื่อกิจกรรม" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:13px;font-weight:600;">ประเภท *</label>
+          <select id="act_type" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+            <option>สิ่งแวดล้อม</option><option>บริการสุขภาพ</option><option>สอนหนังสือ</option>
+            <option>เล่านิทาน</option><option>งานช่าง</option><option>ด้านรับ</option><option>อื่นๆ</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:13px;font-weight:600;">วันที่ *</label>
+          <input id="act_date" type="date" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:13px;font-weight:600;">ชั่วโมง *</label>
+          <input id="act_hours" type="number" min="1" max="40" placeholder="จำนวนชั่วโมง" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:13px;font-weight:600;">จำนวนรับ *</label>
+          <input id="act_cap" type="number" min="1" placeholder="จำนวนที่รับ" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:13px;font-weight:600;">สถานที่</label>
+          <input id="act_loc" type="text" placeholder="สถานที่จัดกิจกรรม" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;grid-column:1/-1;">
+          <label style="font-size:13px;font-weight:600;">รายละเอียด</label>
+          <textarea id="act_detail" placeholder="รายละเอียดกิจกรรม" rows="3" style="padding:10px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:18px;">
+        <button onclick="submitAddActivity()" style="background:#27ae60;color:white;border:none;padding:12px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;font-weight:600;cursor:pointer;">💾 บันทึกกิจกรรม</button>
+        <button onclick="document.getElementById('addActivityForm').style.display='none'" style="background:#ecf0f1;color:#1a2332;border:none;padding:12px 20px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>กิจกรรม</th><th>ประเภท</th><th>วันที่</th><th>ชั่วโมง</th><th>ผู้สมัคร</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody id="adminActivitiesTable">
+          <tr><td colspan="7" style="text-align:center;color:#6b7c93;padding:24px;">กำลังโหลด...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: ผู้สมัคร -->
+  <div id="admin-members" style="display:none;">
+    <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;margin-bottom:16px;">รายชื่อผู้สมัครกิจกรรม</div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <select id="filterActivity" style="padding:10px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;min-width:200px;outline:none;">
+        <option value="">-- เลือกกิจกรรม --</option>
+      </select>
+      <button onclick="loadMembers()" style="background:#1a5f7a;color:white;border:none;padding:10px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">ค้นหา</button>
+      <button onclick="exportMembers()" style="background:#ecf0f1;color:#1a2332;border:none;padding:10px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">📥 Export</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>หน่วยงาน</th><th>วันที่สมัคร</th><th>ชั่วโมง</th><th>สถานะ</th></tr></thead>
+        <tbody id="membersTable">
+          <tr><td colspan="7" style="text-align:center;color:#6b7c93;padding:24px;">เลือกกิจกรรมเพื่อดูรายชื่อ</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: เกียรติบัตร -->
+  <div id="admin-cert" style="display:none;">
+    <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;margin-bottom:16px;">ออกเกียรติบัตร</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+      <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;border:2px solid #cd7f32;">
+        <div style="font-size:36px;">🥉</div>
+        <div style="font-family:Prompt,sans-serif;font-weight:700;color:#cd7f32;margin:8px 0;">ระดับทองแดง</div>
+        <div style="font-size:13px;color:#6b7c93;">8 ชั่วโมงขึ้นไป</div>
+        <button onclick="issueCerts('bronze',8)" style="margin-top:12px;background:#cd7f32;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;width:100%;">ออกใบทั้งหมด</button>
+      </div>
+      <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;border:2px solid #aaa;">
+        <div style="font-size:36px;">🥈</div>
+        <div style="font-family:Prompt,sans-serif;font-weight:700;color:#888;margin:8px 0;">ระดับเงิน</div>
+        <div style="font-size:13px;color:#6b7c93;">24 ชั่วโมงขึ้นไป</div>
+        <button onclick="issueCerts('silver',24)" style="margin-top:12px;background:#888;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;width:100%;">ออกใบทั้งหมด</button>
+      </div>
+      <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;border:2px solid #f0c040;">
+        <div style="font-size:36px;">🥇</div>
+        <div style="font-family:Prompt,sans-serif;font-weight:700;color:#c09000;margin:8px 0;">ระดับทอง</div>
+        <div style="font-size:13px;color:#6b7c93;">40 ชั่วโมงขึ้นไป</div>
+        <button onclick="issueCerts('gold',40)" style="margin-top:12px;background:#c09000;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;width:100%;">ออกใบทั้งหมด</button>
+      </div>
+    </div>
+    <div id="certResult" style="display:none;background:#e8f8f0;border:1.5px solid #b3e8cf;border-radius:12px;padding:16px 20px;font-size:14px;color:#1a5c38;"></div>
+  </div>
+
+  <!-- Tab: รายงาน -->
+  <div id="admin-report" style="display:none;">
+    <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;margin-bottom:16px;">รายงานโครงการของฉัน</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;" id="adminStatsGrid">
+      <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;">
+        <div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#1a5f7a;" id="adminStatAct">-</div>
+        <div style="font-size:13px;color:#6b7c93;margin-top:4px;">กิจกรรม</div>
+      </div>
+      <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;">
+        <div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#27ae60;" id="adminStatVol">-</div>
+        <div style="font-size:13px;color:#6b7c93;margin-top:4px;">จิตอาสา</div>
+      </div>
+      <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;">
+        <div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#e8a838;" id="adminStatHours">-</div>
+        <div style="font-size:13px;color:#6b7c93;margin-top:4px;">ชั่วโมงรวม</div>
+      </div>
+      <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 4px 24px rgba(26,95,122,.1);text-align:center;">
+        <div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#e74c3c;" id="adminStatPending">-</div>
+        <div style="font-size:13px;color:#6b7c93;margin-top:4px;">รออนุมัติ</div>
+      </div>
+    </div>
+    <button onclick="loadAdminReport()" style="background:#1a5f7a;color:white;border:none;padding:11px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">🔄 โหลดรายงาน</button>
+  </div>
+
+</div>
 </body>
 </html>
