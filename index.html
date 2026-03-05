@@ -332,35 +332,113 @@
 </head>
 <body>
 
-<!-- PDPA Modal -->
-<div id="pdpaModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(4px);">
-  <div style="background:white;border-radius:16px;padding:40px;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;">
-    <div style="font-size:36px;margin-bottom:12px;">🛡️</div>
-    <h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-bottom:8px;">นโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA)</h2>
-    <p style="font-size:14px;color:#6b7c93;line-height:1.7;margin-bottom:20px;">ราชวิทยาลัยจุฬาภรณ์ ให้ความสำคัญกับความเป็นส่วนตัวของท่าน กรุณาอ่านและยืนยันการยินยอมเพื่อใช้งานระบบธนาคารจิตอาสา ราชวิทยาลัยจุฬาภรณ์</p>
-    <div style="background:#f7fafc;border:1.5px solid #d1dbe8;border-radius:10px;padding:18px;max-height:180px;overflow-y:auto;font-size:13px;line-height:1.8;color:#1a2332;margin-bottom:20px;">
-      <strong>ข้อมูลที่เราเก็บรวบรวม:</strong><br>
-      ระบบจะเก็บข้อมูลส่วนบุคคลของท่าน ได้แก่ ชื่อ-นามสกุล, รหัสพนักงาน/นักศึกษา, หน่วยงาน/ภาควิชา, เบอร์โทร, อีเมล, และข้อมูลการเข้าร่วมกิจกรรมจิตอาสา<br><br>
-      <strong>วัตถุประสงค์การใช้ข้อมูล:</strong><br>
-      เพื่อสะสมรายชื่อและเวลาจิตอาสา บันทึกประวัติการปฏิบัติงาน ออกเกียรติบัตร และรายงานผลการดำเนินงาน<br><br>
-      <strong>การเก็บรักษาข้อมูล:</strong><br>
-      ข้อมูลจะถูกเก็บไว้ตลอดระยะเวลาที่ท่านเป็นบุคลากร/นักศึกษา และอีก 5 ปีหลังสิ้นสุดสถานภาพ<br><br>
-      <strong>สิทธิ์ของท่าน:</strong><br>
-      ท่านมีสิทธิ์ขอเข้าถึง แก้ไข ลบ หรือระงับการประมวลผลข้อมูลได้ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
+<!-- ===== USER LOGIN MODAL ===== -->
+<div id="userLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;">🌿</div>
+      <h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-top:8px;">เข้าสู่ระบบ</h2>
+      <p style="font-size:13px;color:#6b7c93;margin-top:4px;">ธนาคารจิตอาสา ราชวิทยาลัยจุฬาภรณ์</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:6px;">รหัสพนักงาน / นักศึกษา</label>
+        <input id="loginCode" type="text" placeholder="เช่น 6401001234" style="width:100%;padding:12px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:6px;">รหัสผ่าน</label>
+        <input id="loginPass" type="password" placeholder="รหัสผ่าน" style="width:100%;padding:12px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doUserLogin()">
+      </div>
+      <div id="loginError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px 14px;font-size:13px;color:#9a1f14;"></div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <button onclick="doUserLogin()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#1a5f7a;color:white;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">เข้าสู่ระบบ</button>
+      <button onclick="closeUserLogin()" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:#6b7c93;">
+      ยังไม่มีบัญชี? <a href="#" onclick="closeUserLogin();showUserSignup();" style="color:#1a5f7a;font-weight:600;text-decoration:none;">สมัครสมาชิก</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== USER SIGNUP MODAL ===== -->
+<div id="userSignupModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:520px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);margin:auto;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;">✨</div>
+      <h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-top:8px;">สมัครสมาชิกจิตอาสา</h2>
+      <p style="font-size:13px;color:#6b7c93;">ราชวิทยาลัยจุฬาภรณ์</p>
     </div>
 
-    <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:1.5px solid #d1dbe8;margin-bottom:12px;cursor:pointer;">
-      <input type="checkbox" id="chk1" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;cursor:pointer;">
-      <span style="font-size:14px;line-height:1.6;">ข้าพเจ้าได้อ่านและเข้าใจนโยบายคุ้มครองข้อมูลส่วนบุคคล และยินยอมให้ราชวิทยาลัยจุฬาภรณ์เก็บรวบรวมและใช้ข้อมูลของข้าพเจ้าตามวัตถุประสงค์ที่ระบุ</span>
-    </label>
-    <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:1.5px solid #d1dbe8;margin-bottom:24px;cursor:pointer;">
-      <input type="checkbox" id="chk2" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;cursor:pointer;">
-      <span style="font-size:14px;line-height:1.6;">ข้าพเจ้ายินยอมให้เปิดเผยข้อมูลเพื่อการออกเกียรติบัตรและรายงานผลต่อผู้บริหาร</span>
-    </label>
+    <!-- PDPA Box inside signup -->
+    <div id="signupPdpaStep" style="margin-bottom:20px;">
+      <div style="background:#f7fafc;border:1.5px solid #d1dbe8;border-radius:10px;padding:16px;max-height:160px;overflow-y:auto;font-size:13px;line-height:1.8;margin-bottom:16px;">
+        <strong>นโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA):</strong><br>
+        ราชวิทยาลัยจุฬาภรณ์จะเก็บข้อมูลส่วนบุคคลของท่าน ได้แก่ ชื่อ-นามสกุล, รหัสพนักงาน/นักศึกษา, หน่วยงาน, เบอร์โทร, อีเมล เพื่อใช้ในระบบธนาคารจิตอาสาเท่านั้น ข้อมูลจะถูกเก็บรักษาตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;margin-bottom:10px;">
+        <input type="checkbox" id="signupPdpa1" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;cursor:pointer;">
+        <span style="font-size:13px;line-height:1.6;">ข้าพเจ้ายินยอมให้ราชวิทยาลัยจุฬาภรณ์เก็บและใช้ข้อมูลส่วนบุคคลตามนโยบายข้างต้น <span style="color:#e74c3c;">*</span></span>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;">
+        <input type="checkbox" id="signupPdpa2" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;cursor:pointer;">
+        <span style="font-size:13px;line-height:1.6;">ยินยอมให้เปิดเผยข้อมูลเพื่อการออกเกียรติบัตรและรายงานผลต่อผู้บริหาร</span>
+      </label>
+    </div>
 
-    <div style="display:flex;gap:14px;">
-      <button onclick="acceptPDPA()" style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:12px;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;border:none;background:#e8a838;color:#0d3d52;box-shadow:0 4px 16px rgba(232,168,56,.4);">✅ ยืนยันและดำเนินการต่อ</button>
-      <button onclick="denyPDPA()" style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:12px;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;border:none;background:#ecf0f1;color:#1a2332;">ไม่ยินยอม</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">รหัสพนักงาน/นักศึกษา <span style="color:#e74c3c;">*</span></label>
+        <input id="su_code" type="text" placeholder="เช่น 6401001234" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">ประเภท <span style="color:#e74c3c;">*</span></label>
+        <select id="su_type" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+          <option>นักศึกษา</option><option>บุคลากร</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">ชื่อ <span style="color:#e74c3c;">*</span></label>
+        <input id="su_fname" type="text" placeholder="ชื่อ" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">นามสกุล <span style="color:#e74c3c;">*</span></label>
+        <input id="su_lname" type="text" placeholder="นามสกุล" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">ตำแหน่ง/คณะ <span style="color:#e74c3c;">*</span></label>
+        <input id="su_pos" type="text" placeholder="เช่น นักศึกษา ปี 2" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">หน่วยงาน/คณะ <span style="color:#e74c3c;">*</span></label>
+        <input id="su_dept" type="text" placeholder="เช่น คณะบริหารธุรกิจ" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">เบอร์โทร</label>
+        <input id="su_phone" type="tel" placeholder="08X-XXX-XXXX" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">อีเมล</label>
+        <input id="su_email" type="email" placeholder="email@cra.ac.th" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">รหัสผ่าน <span style="color:#e74c3c;">*</span></label>
+        <input id="su_pass" type="password" placeholder="ตั้งรหัสผ่าน" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:13px;font-weight:600;">ยืนยันรหัสผ่าน <span style="color:#e74c3c;">*</span></label>
+        <input id="su_pass2" type="password" placeholder="ยืนยันรหัสผ่าน" style="padding:11px 12px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+      </div>
+    </div>
+
+    <div id="signupError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px 14px;font-size:13px;color:#9a1f14;margin-top:14px;"></div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <button onclick="doUserSignup()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#e8a838;color:#0d3d52;font-family:Sarabun,sans-serif;font-size:15px;font-weight:700;cursor:pointer;">✅ สมัครสมาชิก</button>
+      <button onclick="closeUserSignup()" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button>
+    </div>
+    <div style="text-align:center;margin-top:14px;font-size:13px;color:#6b7c93;">
+      มีบัญชีแล้ว? <a href="#" onclick="closeUserSignup();showUserLogin();" style="color:#1a5f7a;font-weight:600;text-decoration:none;">เข้าสู่ระบบ</a>
     </div>
   </div>
 </div>
@@ -383,10 +461,23 @@
         <button onclick="showPage('history')" id="nav-history">📂 ประวัติ</button>
         <button onclick="showPage('report')" id="nav-report">📊 รายงาน</button>
       </div>
-      <button class="btn-login notif" onclick="showPage('profile')" id="nav-profile">
-        👤 น.ส.สมใจ
-        <span class="notif-dot"></span>
-      </button>
+      <div id="nav-profile-area">
+        <!-- Shown when NOT logged in -->
+        <button id="btn-nav-login" onclick="showUserLogin()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 16px;border-radius:8px;cursor:pointer;margin-right:4px;">
+          เข้าสู่ระบบ
+        </button>
+        <button id="btn-nav-signup" onclick="showUserSignup()" style="background:#e8a838;color:#0d3d52;font-family:Sarabun,sans-serif;font-size:13px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;border:none;">
+          สมัครสมาชิก
+        </button>
+        <!-- Shown when logged in -->
+        <button id="btn-nav-user" onclick="showPage('profile')" style="display:none;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;" class="notif">
+          👤 <span id="nav-username">ผู้ใช้</span>
+          <span class="notif-dot" id="nav-notif-dot" style="display:none;"></span>
+        </button>
+        <button id="btn-nav-logout" onclick="userLogout()" style="display:none;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);font-family:Sarabun,sans-serif;font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer;margin-left:4px;">
+          ออก
+        </button>
+      </div>
       <button onclick="showAdminLogin()" id="nav-admin" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;margin-left:4px;">
         🔐 Admin
       </button>
@@ -1328,7 +1419,7 @@
 
   function showAdminLogin() {
     var m = document.getElementById('adminLoginModal');
-    m.style.display = 'flex';
+    m.style.cssText = 'display:flex!important;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);';
     document.getElementById('adminLoginError').style.display = 'none';
     document.getElementById('adminUser').value = '';
     document.getElementById('adminPass').value = '';
@@ -1336,7 +1427,7 @@
   }
 
   function closeAdminLogin() {
-    document.getElementById('adminLoginModal').style.display = 'none';
+    document.getElementById('adminLoginModal').style.cssText = 'display:none!important';
   }
 
   function doAdminLogin() {
@@ -1521,10 +1612,152 @@
       set('adminStatPending', d['รออนุมัติ']  || '-');
     });
   }
+
+  // ============================================================
+  // USER AUTH SYSTEM
+  // ============================================================
+  var currentUser = null;
+
+  function showUserLogin() {
+    var m = document.getElementById('userLoginModal');
+    m.style.cssText = 'display:flex!important;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);';
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginCode').value = '';
+    document.getElementById('loginPass').value = '';
+    setTimeout(function(){ document.getElementById('loginCode').focus(); }, 100);
+  }
+
+  function closeUserLogin() {
+    document.getElementById('userLoginModal').style.cssText = 'display:none!important';
+  }
+
+  function showUserSignup() {
+    var m = document.getElementById('userSignupModal');
+    m.style.cssText = 'display:flex!important;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);overflow-y:auto;';
+    document.getElementById('signupError').style.display = 'none';
+  }
+
+  function closeUserSignup() {
+    document.getElementById('userSignupModal').style.cssText = 'display:none!important';
+  }
+
+  function doUserLogin() {
+    var code = document.getElementById('loginCode').value.trim();
+    var pass = document.getElementById('loginPass').value;
+    var errEl = document.getElementById('loginError');
+    if (!code || !pass) {
+      errEl.textContent = '❌ กรุณากรอกรหัสและรหัสผ่าน';
+      errEl.style.display = 'block'; return;
+    }
+    // Call API to verify
+    callAPI('loginUser', { code: code, password: pass }).then(function(res) {
+      if (res.success) {
+        currentUser = res.data;
+        closeUserLogin();
+        setLoggedInState(currentUser);
+        loadActivities();
+        loadSummary();
+        showPage('home');
+      } else {
+        errEl.textContent = '❌ ' + res.message;
+        errEl.style.display = 'block';
+      }
+    });
+  }
+
+  function doUserSignup() {
+    var errEl = document.getElementById('signupError');
+    var pdpa1 = document.getElementById('signupPdpa1').checked;
+    var code  = document.getElementById('su_code').value.trim();
+    var fname = document.getElementById('su_fname').value.trim();
+    var lname = document.getElementById('su_lname').value.trim();
+    var type  = document.getElementById('su_type').value;
+    var pos   = document.getElementById('su_pos').value.trim();
+    var dept  = document.getElementById('su_dept').value.trim();
+    var phone = document.getElementById('su_phone').value.trim();
+    var email = document.getElementById('su_email').value.trim();
+    var pass  = document.getElementById('su_pass').value;
+    var pass2 = document.getElementById('su_pass2').value;
+
+    if (!pdpa1) { errEl.textContent='❌ กรุณายืนยันการยินยอม PDPA ก่อน'; errEl.style.display='block'; return; }
+    if (!code||!fname||!lname||!pos||!dept) { errEl.textContent='❌ กรุณากรอกข้อมูลที่จำเป็นให้ครบ'; errEl.style.display='block'; return; }
+    if (!pass||pass.length < 6) { errEl.textContent='❌ รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'; errEl.style.display='block'; return; }
+    if (pass !== pass2) { errEl.textContent='❌ รหัสผ่านไม่ตรงกัน'; errEl.style.display='block'; return; }
+
+    errEl.style.display = 'none';
+    callAPI('signupUser', {
+      code:code, firstName:fname, lastName:lname, type:type,
+      position:pos, department:dept, phone:phone, email:email, password:pass
+    }).then(function(res) {
+      if (res.success) {
+        closeUserSignup();
+        currentUser = { code:code, firstName:fname, lastName:lname, type:type, position:pos, department:dept, phone:phone, email:email, totalHours:0 };
+        setLoggedInState(currentUser);
+        showPage('home');
+        loadActivities();
+        var t = document.getElementById('toast');
+        t.innerHTML = '✅ สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ' + fname;
+        t.style.display = 'block';
+        setTimeout(function(){ t.style.display='none'; t.innerHTML='✅ บันทึกข้อมูลสำเร็จ!'; }, 3000);
+      } else {
+        errEl.textContent = '❌ ' + res.message;
+        errEl.style.display = 'block';
+      }
+    });
+  }
+
+  function setLoggedInState(user) {
+    // Hide login/signup buttons, show user button
+    document.getElementById('btn-nav-login').style.display  = 'none';
+    document.getElementById('btn-nav-signup').style.display = 'none';
+    document.getElementById('btn-nav-user').style.display   = 'inline-flex';
+    document.getElementById('btn-nav-logout').style.display = 'inline-flex';
+    document.getElementById('nav-username').textContent = user.firstName || user.code;
+
+    // Fill profile page
+    var profileName = document.querySelector('.profile-info h2');
+    if (profileName) profileName.textContent = user.firstName + ' ' + user.lastName;
+    var profileSub = document.querySelector('.profile-info p');
+    if (profileSub) profileSub.innerHTML = 'รหัส: ' + user.code + ' | ' + user.department + '<br>' + user.email + ' | ' + user.phone;
+
+    // Fill register form autofill fields
+    var fillMap = {
+      'volCode': user.code,
+      'volName': user.firstName + ' ' + user.lastName,
+      'volPosition': user.position,
+      'volDept': user.department,
+      'volPhone': user.phone,
+      'volEmail': user.email
+    };
+    Object.keys(fillMap).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = fillMap[id];
+    });
+  }
+
+  function userLogout() {
+    currentUser = null;
+    document.getElementById('btn-nav-login').style.display  = 'inline-flex';
+    document.getElementById('btn-nav-signup').style.display = 'inline-flex';
+    document.getElementById('btn-nav-user').style.display   = 'none';
+    document.getElementById('btn-nav-logout').style.display = 'none';
+    showPage('home');
+  }
+
+  // Guard pages that require login
+  var _origShowPage = showPage;
+  showPage = function(id) {
+    var requireLogin = ['register-time','history','profile'];
+    if (requireLogin.indexOf(id) !== -1 && !currentUser) {
+      showUserLogin(); return;
+    }
+    _origShowPage(id);
+    if (id === 'history' && currentUser) loadHistory(currentUser.code);
+  };
 </script>
 
 <!-- Admin Login Modal -->
-<div id="adminLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);">
+<div id="adminLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(6px);">
   <div style="background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
     <div style="text-align:center;margin-bottom:24px;">
       <div style="font-size:48px;">🔐</div>
