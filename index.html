@@ -1,407 +1,1157 @@
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwplSLZ3_I5hLQtr-Unhk_QC3zlGCs4i1_Oqpvvxn5oF3RwY-3xWCCLqWyO2Znl25mF/exec';
-var currentUser  = null;
-var currentAdmin = null;
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRA Volunteer Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
 
-var ADMIN_ACCOUNTS = {
-  'admin':   { pass:'cra2568',    name:'Super Admin',           project:'ALL' },
-  'gkicka':  { pass:'kicka2568',  name:'กองกิจการนักศึกษา',   project:'กองกิจการนักศึกษา' },
-  'nursing': { pass:'nurse2568',  name:'คณะพยาบาลศาสตร์',     project:'คณะพยาบาลศาสตร์' },
-  'edu':     { pass:'edu2568',    name:'คณะครุศาสตร์',          project:'คณะครุศาสตร์' }
-};
 
-// ── Modal ──────────────────────────────────────────────────
-function openModal(id) {
-  document.getElementById(id).style.display = 'flex';
-}
-function closeModal(id) {
-  document.getElementById(id).style.display = 'none';
-}
-function showUserLogin()  { openModal('userLoginModal'); }
-function showUserSignup() { openModal('userSignupModal'); }
-function showAdminLogin() { openModal('adminLoginModal'); }
 
-// ── API ────────────────────────────────────────────────────
-function callAPI(action, params) {
-  var url = APPS_SCRIPT_URL + '?action=' + action;
-  if (params) {
-    Object.keys(params).forEach(function(k) {
-      url += '&' + k + '=' + encodeURIComponent(params[k]);
-    });
+
+  :root {
+    --primary: #1a5f7a;
+    --primary-dark: #0d3d52;
+    --primary-light: #2980b9;
+    --accent: #e8a838;
+    --accent-light: #f5c842;
+    --green: #27ae60;
+    --green-light: #2ecc71;
+    --red: #e74c3c;
+    --bg: #f0f4f8;
+    --bg-card: #ffffff;
+    --text: #1a2332;
+    --text-muted: #6b7c93;
+    --border: #d1dbe8;
+    --shadow: 0 4px 24px rgba(26,95,122,0.10);
+    --shadow-hover: 0 8px 32px rgba(26,95,122,0.18);
+    --radius: 16px;
+    --radius-sm: 10px;
   }
-  return fetch(url)
-    .then(function(r) { return r.json(); })
-    .catch(function() { return { success: false, message: 'เชื่อมต่อไม่ได้' }; });
-}
 
-// ── Navigation ─────────────────────────────────────────────
-function showPage(id) {
-  var requireLogin = ['register-time', 'history', 'profile'];
-  if (requireLogin.indexOf(id) !== -1 && !currentUser) {
-    openModal('userLoginModal');
-    return;
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
   }
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.getElementById('page-' + id).classList.add('active');
-  document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
-  var nb = document.getElementById('nav-' + id);
-  if (nb) nb.classList.add('active');
-  window.scrollTo(0, 0);
-  if (id === 'history' && currentUser) loadHistory(currentUser.code);
-  if (id === 'report') loadSummary();
-  if (id === 'admin') { loadPendingLogs(); loadAdminActivities(); loadAdminReport(); }
-}
 
-function switchTab(btn, targetId) {
-  var tabs = btn.closest('.tabs');
-  tabs.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  var el = tabs.nextElementSibling;
-  while (el) { if (el.id) el.style.display = 'none'; el = el.nextElementSibling; }
-  document.getElementById(targetId).style.display = 'block';
-}
-
-function showToast(msg) {
-  var t = document.getElementById('toastMsg');
-  t.innerHTML = msg || 'บันทึกสำเร็จ';
-  t.style.display = 'block';
-  setTimeout(function() { t.style.display = 'none'; }, 2500);
-}
-function showSuccess() { showToast('✅ บันทึกข้อมูลสำเร็จ!'); showPage('history'); }
-
-// ── User Auth ──────────────────────────────────────────────
-function doUserLogin() {
-  var code  = document.getElementById('loginCode').value.trim();
-  var pass  = document.getElementById('loginPass').value;
-  var err   = document.getElementById('loginError');
-  if (!code || !pass) {
-    err.textContent = 'กรุณากรอกรหัสและรหัสผ่าน';
-    err.style.display = 'block';
-    return;
+  /* ===== HEADER ===== */
+  header {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+    padding: 0;
+    position: sticky; top:0; z-index:100;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
   }
-  err.style.display = 'none';
-  callAPI('loginUser', { code: code, password: pass }).then(function(res) {
-    if (res.success) {
-      currentUser = res.data;
-      closeModal('userLoginModal');
-      setLoggedIn(res.data);
-      showPage('home');
-    } else {
-      err.textContent = res.message;
-      err.style.display = 'block';
-    }
-  });
-}
-
-function doUserSignup() {
-  var err   = document.getElementById('signupError');
-  var pdpa  = document.getElementById('signupPdpa1').checked;
-  var code  = document.getElementById('su_code').value.trim();
-  var fname = document.getElementById('su_fname').value.trim();
-  var lname = document.getElementById('su_lname').value.trim();
-  var type  = document.getElementById('su_type').value;
-  var pos   = document.getElementById('su_pos').value.trim();
-  var dept  = document.getElementById('su_dept').value.trim();
-  var phone = document.getElementById('su_phone').value.trim();
-  var email = document.getElementById('su_email').value.trim();
-  var pass  = document.getElementById('su_pass').value;
-  var pass2 = document.getElementById('su_pass2').value;
-
-  if (!pdpa) { err.textContent = 'กรุณายืนยัน PDPA'; err.style.display = 'block'; return; }
-  if (!code || !fname || !lname || !pos || !dept) { err.textContent = 'กรุณากรอกข้อมูลให้ครบ'; err.style.display = 'block'; return; }
-  if (pass.length < 6) { err.textContent = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว'; err.style.display = 'block'; return; }
-  if (pass !== pass2) { err.textContent = 'รหัสผ่านไม่ตรงกัน'; err.style.display = 'block'; return; }
-  err.style.display = 'none';
-
-  callAPI('signupUser', {
-    code: code, firstName: fname, lastName: lname, type: type,
-    position: pos, department: dept, phone: phone, email: email, password: pass
-  }).then(function(res) {
-    if (res.success) {
-      closeModal('userSignupModal');
-      currentUser = { code: code, firstName: fname, lastName: lname, type: type,
-        position: pos, department: dept, phone: phone, email: email, totalHours: 0 };
-      setLoggedIn(currentUser);
-      showPage('home');
-      showToast('สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ' + fname);
-    } else {
-      err.textContent = res.message;
-      err.style.display = 'block';
-    }
-  });
-}
-
-function setLoggedIn(user) {
-  document.getElementById('btn-nav-login').style.display  = 'none';
-  document.getElementById('btn-nav-signup').style.display = 'none';
-  document.getElementById('btn-nav-user').style.display   = 'inline-flex';
-  document.getElementById('btn-nav-logout').style.display = 'inline-flex';
-  document.getElementById('nav-username').textContent = user.firstName || user.code;
-}
-
-function userLogout() {
-  currentUser = null;
-  document.getElementById('btn-nav-login').style.display  = 'inline-flex';
-  document.getElementById('btn-nav-signup').style.display = 'inline-flex';
-  document.getElementById('btn-nav-user').style.display   = 'none';
-  document.getElementById('btn-nav-logout').style.display = 'none';
-  showPage('home');
-}
-
-// ── Admin Auth ─────────────────────────────────────────────
-function doAdminLogin() {
-  var user = document.getElementById('adminUser').value.trim().toLowerCase();
-  var pass = document.getElementById('adminPass').value;
-  var err  = document.getElementById('adminLoginError');
-  var acc  = ADMIN_ACCOUNTS[user];
-  if (acc && acc.pass === pass) {
-    currentAdmin = { username: user, name: acc.name, project: acc.project };
-    closeModal('adminLoginModal');
-    var suffix = acc.project !== 'ALL' ? ' | โครงการ: ' + acc.project : ' | ดูแลทุกโครงการ';
-    document.getElementById('adminWelcome').textContent = 'ยินดีต้อนรับ ' + acc.name + suffix;
-    showPage('admin');
-  } else {
-    err.style.display = 'block';
+  .header-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; height: 64px;
   }
-}
-function adminLogout() { currentAdmin = null; showPage('home'); }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; color: white;
+  }
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(232,168,56,0.4);
+  }
+  .logo-text { line-height: 1.2; }
+  .logo-text strong { font-family:'Prompt',sans-serif; font-size:16px; display:block; font-weight:700; letter-spacing:.5px;}
+  .logo-text span { font-size:11px; opacity:.82; letter-spacing:.3px;}
+  nav { display:flex; align-items:center; gap:6px; }
+  nav button {
+    background:none; border:none; color:rgba(255,255,255,0.85);
+    font-family:'Sarabun',sans-serif; font-size:14px; font-weight:500;
+    padding:7px 14px; border-radius:8px; cursor:pointer;
+    transition: all .2s;
+  }
+  nav button:hover, nav button.active {
+    background: rgba(255,255,255,0.18); color:white;
+  }
+  .btn-login {
+    background: var(--accent) !important; color: var(--primary-dark) !important;
+    font-weight:700 !important; padding:7px 18px !important;
+    box-shadow: 0 2px 8px rgba(232,168,56,.35);
+  }
+  .btn-login:hover { background: var(--accent-light) !important; transform:translateY(-1px);}
 
-// ── Activities ─────────────────────────────────────────────
-function loadActivities() {
-  callAPI('getActivities').then(function(res) {
-    if (!res.success) return;
-    var tbody = document.querySelector('#activitiesTable tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    res.data.forEach(function(a) {
-      var sc  = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
-      var btn = a.status === 'เปิดรับ'
-        ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister()">สมัคร</button>'
-        : '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>';
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
-        + '<td>' + a.type + '</td><td>' + a.date + '</td>'
-        + '<td>' + a.hours + ' ชม.</td><td>' + a.organizer + '</td>'
-        + '<td>' + a.registered + '/' + a.capacity + '</td>'
-        + '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>'
-        + '<td>' + btn + '</td>';
-      tbody.appendChild(tr);
-    });
-  });
-}
+  /* ===== MAIN ===== */
+  main { max-width:1200px; margin:0 auto; padding:32px 28px 60px; }
 
-function goRegister() {
-  if (!currentUser) { openModal('userLoginModal'); return; }
-  showPage('register-time');
-}
+  /* ===== PAGES ===== */
+  .page { display:none; animation: fadeUp .35s ease; }
+  .page.active { display:block; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
 
-function loadSummary() {
-  callAPI('getSummary').then(function(res) {
-    if (!res.success) return;
-    var map = {
-      'statTotal': 'จิตอาสาทั้งหมด', 'statStaff': 'บุคลากร',
-      'statStudent': 'นักศึกษา', 'statHours': 'ชั่วโมงที่อนุมัติแล้ว'
-    };
-    Object.keys(map).forEach(function(id) {
-      var e = document.getElementById(id);
-      if (e && res.data[map[id]] !== undefined) e.textContent = res.data[map[id]];
-    });
-  });
-}
+  /* ===== HERO ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    border-radius: 24px;
+    padding: 56px 48px;
+    color: white;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 32px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content:''; position:absolute; right:-60px; top:-60px;
+    width:320px; height:320px;
+    background: rgba(255,255,255,.05);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content:''; position:absolute; right:80px; bottom:-80px;
+    width:200px; height:200px;
+    background: rgba(232,168,56,.12);
+    border-radius: 50%;
+  }
+  .hero-content { flex:1; }
+  .hero h1 { font-family:'Prompt',sans-serif; font-size:36px; font-weight:700; line-height:1.25; margin-bottom:12px; }
+  .hero h1 span { color:var(--accent-light); }
+  .hero p { font-size:17px; opacity:.88; line-height:1.7; max-width:480px; margin-bottom:28px; }
+  .hero-btns { display:flex; gap:14px; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:13px 28px; border-radius:12px; font-family:'Sarabun',sans-serif; font-size:15px; font-weight:600; cursor:pointer; border:none; transition:all .2s; text-decoration:none; }
+  .btn-primary { background:var(--accent); color:var(--primary-dark); box-shadow:0 4px 16px rgba(232,168,56,.4); }
+  .btn-primary:hover { background:var(--accent-light); transform:translateY(-2px); box-shadow:0 6px 20px rgba(232,168,56,.5); }
+  .btn-outline { background:rgba(255,255,255,.12); color:white; border:2px solid rgba(255,255,255,.35); backdrop-filter:blur(4px); }
+  .btn-outline:hover { background:rgba(255,255,255,.22); transform:translateY(-2px); }
+  .hero-stats { display:flex; flex-direction:column; gap:16px; z-index:1; }
+  .stat-card {
+    background:rgba(255,255,255,.13); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:16px; padding:20px 28px; text-align:center; min-width:140px;
+  }
+  .stat-card .num { font-family:'Prompt',sans-serif; font-size:30px; font-weight:700; color:var(--accent-light); }
+  .stat-card .lbl { font-size:13px; opacity:.82; margin-top:4px; }
 
-function loadHistory(code) {
-  if (!code) return;
-  callAPI('getHistory', { code: code }).then(function(res) {
-    if (!res.success) return;
-    var tbody = document.querySelector('#historyTable tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    var total = 0;
-    res.data.forEach(function(log) {
-      total += Number(log.hours);
-      var sc = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + log.date + '</td><td>' + log.organizer + '</td>'
-        + '<td>' + log.hours + ' ชม.</td><td>' + total + ' ชม.</td>'
-        + '<td><span class="status-pill ' + sc + '">' + log.status + '</span></td>';
-      tbody.appendChild(tr);
-    });
-    var el = document.getElementById('totalHours');
-    if (el) el.textContent = total;
-  });
-}
+  /* ===== STATS ROW ===== */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:32px; }
+  .stat-box {
+    background:white; border-radius:var(--radius); padding:22px 20px;
+    box-shadow:var(--shadow); display:flex; align-items:center; gap:16px;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .stat-box:hover { transform:translateY(-3px); box-shadow:var(--shadow-hover); }
+  .stat-box .icon {
+    width:52px; height:52px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+    flex-shrink:0;
+  }
+  .stat-box .info .num { font-family:'Prompt',sans-serif; font-size:26px; font-weight:700; }
+  .stat-box .info .lbl { font-size:13px; color:var(--text-muted); }
 
-function submitTimeLog() {
-  if (!currentUser) { openModal('userLoginModal'); return; }
-  showSuccess();
-}
+  /* ===== SECTION ===== */
+  .section-title {
+    font-family:'Prompt',sans-serif; font-size:22px; font-weight:600;
+    color: var(--primary-dark); margin-bottom:20px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .section-title::after {
+    content:''; flex:1; height:2px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
 
-// ── Admin ──────────────────────────────────────────────────
-function loadPendingLogs() {
-  var tbody = document.getElementById('pendingLogsTable');
-  if (!tbody || !currentAdmin) return;
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#6b7c93;">กำลังโหลด...</td></tr>';
-  var params = currentAdmin.project !== 'ALL' ? { project: currentAdmin.project } : {};
-  callAPI('getPendingLogs', params).then(function(res) {
-    if (!res.success || !res.data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">ไม่มีรายการรออนุมัติ</td></tr>';
-      return;
-    }
-    tbody.innerHTML = '';
-    res.data.forEach(function(log) {
-      var tr = document.createElement('tr');
-      var btnA = document.createElement('button');
-      btnA.textContent = 'อนุมัติ';
-      btnA.style.cssText = 'background:#27ae60;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;margin-right:4px;';
-      btnA.onclick = function() { approveLog(log.logId, 'อนุมัติ'); };
+  /* ===== CARDS GRID ===== */
+  .cards-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:32px; }
+  .activity-card {
+    background:white; border-radius:var(--radius); overflow:hidden;
+    box-shadow:var(--shadow); transition:all .25s; cursor:pointer;
+  }
+  .activity-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-hover); }
+  .card-img {
+    height:140px; display:flex; align-items:center; justify-content:center;
+    font-size:48px; position:relative;
+  }
+  .card-badge {
+    position:absolute; top:12px; right:12px;
+    background:white; border-radius:20px; padding:4px 12px;
+    font-size:12px; font-weight:600; color:var(--primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+  .card-body { padding:18px; }
+  .card-body h3 { font-size:16px; font-weight:600; margin-bottom:6px; color:var(--text); }
+  .card-body p { font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:12px; }
+  .card-meta { display:flex; gap:12px; font-size:12px; color:var(--text-muted); }
+  .card-meta span { display:flex; align-items:center; gap:4px; }
+  .tag {
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    font-size:12px; font-weight:600; margin-right:6px;
+  }
 
-      var btnR = document.createElement('button');
-      btnR.textContent = 'ปฏิเสธ';
-      btnR.style.cssText = 'background:#e74c3c;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
-      btnR.onclick = function() { approveLog(log.logId, 'ปฏิเสธ'); };
+  /* ===== FORM ===== */
+  .form-card { background:white; border-radius:var(--radius); padding:36px; box-shadow:var(--shadow); }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .form-group { display:flex; flex-direction:column; gap:7px; }
+  .form-group.full { grid-column:1/-1; }
+  label { font-size:14px; font-weight:600; color:var(--text); }
+  label span.req { color:var(--red); margin-left:2px; }
+  input, select, textarea {
+    padding:11px 14px; border:1.5px solid var(--border);
+    border-radius:var(--radius-sm); font-family:'Sarabun',sans-serif; font-size:14px;
+    color:var(--text); background:white; transition:border .2s, box-shadow .2s;
+    outline:none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color:var(--primary); box-shadow:0 0 0 3px rgba(26,95,122,.12);
+  }
+  textarea { resize:vertical; min-height:100px; }
+  .input-hint { font-size:12px; color:var(--text-muted); margin-top:3px; }
+  .form-actions { display:flex; gap:14px; margin-top:24px; flex-wrap:wrap; }
+  .btn-green { background:var(--green); color:white; box-shadow:0 4px 14px rgba(39,174,96,.3); }
+  .btn-green:hover { background:var(--green-light); transform:translateY(-2px); }
+  .btn-gray { background:#ecf0f1; color:var(--text); }
+  .btn-gray:hover { background:#dde3ea; }
 
-      var tdBtn = document.createElement('td');
-      tdBtn.appendChild(btnA); tdBtn.appendChild(btnR);
+  /* ===== TABLE ===== */
+  .table-wrap { background:white; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  thead { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color:white; }
+  th { padding:14px 18px; text-align:left; font-size:14px; font-weight:600; white-space:nowrap; }
+  td { padding:13px 18px; font-size:14px; border-bottom:1px solid var(--border); }
+  tbody tr:hover { background:#f7fafc; }
+  tbody tr:last-child td { border-bottom:none; }
+  .status-pill {
+    display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600;
+  }
+  .pill-green { background:#d4f4e1; color:#1a7a42; }
+  .pill-orange { background:#fff0d4; color:#9a6200; }
+  .pill-blue { background:#d6eeff; color:#0d5a9a; }
+  .pill-red { background:#ffe0de; color:#9a1f14; }
 
-      tr.innerHTML = '<td><strong>' + log.fullName + '</strong></td>'
-        + '<td>' + log.volunteerCode + '</td><td>' + log.organizer + '</td>'
-        + '<td>' + log.date + '</td><td><strong>' + log.hours + ' ชม.</strong></td>'
-        + '<td><span class="status-pill pill-orange">รออนุมัติ</span></td>';
-      tr.appendChild(tdBtn);
-      tbody.appendChild(tr);
-    });
-  });
-}
+  /* ===== TABS ===== */
+  .tabs { display:flex; gap:4px; background:white; border-radius:var(--radius-sm); padding:5px; box-shadow:var(--shadow); margin-bottom:24px; }
+  .tab-btn {
+    flex:1; padding:10px 16px; border:none; border-radius:7px;
+    font-family:'Sarabun',sans-serif; font-size:14px; font-weight:500;
+    cursor:pointer; transition:all .2s; background:none; color:var(--text-muted);
+  }
+  .tab-btn.active { background:var(--primary); color:white; font-weight:600; box-shadow:0 2px 8px rgba(26,95,122,.3); }
 
-function approveLog(logId, status) {
-  if (!confirm('ยืนยันการ' + status + '?')) return;
-  callAPI('updateLogStatus', { logId: logId, status: status, approver: currentAdmin.name })
-    .then(function(res) {
-      showToast(res.success ? 'สำเร็จ' : res.message);
-      if (res.success) loadPendingLogs();
-    });
-}
+  /* ===== PROFILE ===== */
+  .profile-header {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    border-radius:var(--radius); padding:32px; color:white;
+    display:flex; align-items:center; gap:28px; margin-bottom:28px;
+  }
+  .avatar {
+    width:90px; height:90px; border-radius:50%;
+    background:var(--accent); display:flex; align-items:center; justify-content:center;
+    font-size:36px; flex-shrink:0;
+    box-shadow:0 4px 16px rgba(232,168,56,.4);
+  }
+  .profile-info h2 { font-family:'Prompt',sans-serif; font-size:22px; font-weight:700; margin-bottom:6px; }
+  .profile-info p { opacity:.85; font-size:14px; line-height:1.7; }
+  .profile-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .badge {
+    background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3);
+    padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600;
+  }
 
-function loadAdminActivities() {
-  var tbody = document.getElementById('adminActivitiesTable');
-  if (!tbody || !currentAdmin) return;
-  callAPI('getActivities').then(function(res) {
-    if (!res.success) return;
-    var acts = res.data.filter(function(a) {
-      return currentAdmin.project === 'ALL' || a.organizer === currentAdmin.project;
-    });
-    tbody.innerHTML = '';
-    var sel = document.getElementById('filterActivity');
-    sel.innerHTML = '<option value="">-- เลือกกิจกรรม --</option>';
-    acts.forEach(function(a) {
-      var opt = document.createElement('option');
-      opt.value = a.id; opt.textContent = a.name;
-      sel.appendChild(opt);
+  /* ===== PDPA MODAL ===== */
+  
+  
+  .modal { background:white; border-radius:var(--radius); padding:40px; max-width:560px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.2); }
+  .modal h2 { font-family:'Prompt',sans-serif; font-size:22px; color:var(--primary-dark); margin-bottom:8px; }
+  .modal p { font-size:14px; color:var(--text-muted); line-height:1.7; margin-bottom:20px; }
+  .pdpa-box {
+    background:#f7fafc; border:1.5px solid var(--border); border-radius:var(--radius-sm);
+    padding:18px; max-height:200px; overflow-y:auto; font-size:13px; line-height:1.8;
+    color:var(--text); margin-bottom:20px;
+  }
+  .checkbox-row {
+    display:flex; align-items:flex-start; gap:12px; margin-bottom:12px;
+    padding:14px; border-radius:var(--radius-sm); border:1.5px solid var(--border);
+    cursor:pointer; transition:border .2s;
+  }
+  .checkbox-row:hover { border-color:var(--primary); }
+  .checkbox-row input[type=checkbox] { margin-top:3px; flex-shrink:0; }
+  .checkbox-row label { cursor:pointer; font-size:14px; line-height:1.6; }
 
-      var sc = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
-      var tr = document.createElement('tr');
+  /* ===== ALERT ===== */
+  .alert { padding:16px 20px; border-radius:var(--radius-sm); margin-bottom:20px; display:flex; align-items:flex-start; gap:12px; font-size:14px; }
+  .alert-info { background:#e8f4fd; border:1.5px solid #b3d9f7; color:#155a8a; }
+  .alert-success { background:#e8f8f0; border:1.5px solid #b3e8cf; color:#1a5c38; }
+  .alert-warn { background:#fff8e8; border:1.5px solid #fde8a3; color:#856400; }
 
-      var btn = document.createElement('button');
-      btn.textContent = 'แก้สถานะ';
-      btn.style.cssText = 'background:#1a5f7a;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
-      btn.onclick = (function(actId, actStatus) {
-        return function() { toggleActivityStatus(actId, actStatus); };
-      })(a.id, a.status);
+  /* ===== TIMELINE ===== */
+  .timeline { position:relative; padding-left:28px; }
+  .timeline::before { content:''; position:absolute; left:10px; top:0; bottom:0; width:2px; background:var(--border); }
+  .timeline-item { position:relative; padding-bottom:24px; }
+  .timeline-dot { position:absolute; left:-23px; top:4px; width:14px; height:14px; border-radius:50%; border:3px solid white; box-shadow:0 0 0 2px var(--primary); background:var(--primary); }
+  .timeline-dot.done { background:var(--green); box-shadow:0 0 0 2px var(--green); }
+  .timeline-date { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+  .timeline-content { background:white; border-radius:var(--radius-sm); padding:14px 16px; box-shadow:var(--shadow); }
+  .timeline-content h4 { font-size:15px; font-weight:600; margin-bottom:4px; }
+  .timeline-content p { font-size:13px; color:var(--text-muted); }
 
-      var tdBtn = document.createElement('td');
-      tdBtn.appendChild(btn);
+  /* ===== PROGRESS ===== */
+  .progress-bar { background:var(--border); border-radius:20px; height:10px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:20px; background:linear-gradient(to right,var(--primary),var(--primary-light)); transition:width .6s ease; }
 
-      tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
-        + '<td>' + a.type + '</td><td>' + a.date + '</td>'
-        + '<td>' + a.hours + ' ชม.</td>'
-        + '<td>' + a.registered + '/' + a.capacity + '</td>'
-        + '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>';
-      tr.appendChild(tdBtn);
-      tbody.appendChild(tr);
-    });
-    if (!acts.length) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">ไม่มีกิจกรรม</td></tr>';
-  });
-}
+  /* ===== RESPONSIVE ===== */
+  @media(max-width:900px) {
+    .stats-row { grid-template-columns:1fr 1fr; }
+    .cards-grid { grid-template-columns:1fr 1fr; }
+    .form-grid { grid-template-columns:1fr; }
+    .hero { flex-direction:column; gap:24px; padding:36px 24px; }
+    .hero-stats { flex-direction:row; }
+  }
+  @media(max-width:600px) {
+    main { padding:20px 14px 48px; }
+    .cards-grid { grid-template-columns:1fr; }
+    nav .nav-links { display:none; }
+    .hero h1 { font-size:26px; }
+  }
 
-function showAddActivity() {
-  var f = document.getElementById('addActivityForm');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
-}
+  /* ===== SEARCH BAR ===== */
+  .search-bar {
+    display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;
+  }
+  .search-bar input { flex:1; min-width:200px; }
+  .search-bar select { min-width:160px; }
 
-function submitAddActivity() {
-  var name  = document.getElementById('act_name').value.trim();
-  var date  = document.getElementById('act_date').value;
-  var hours = document.getElementById('act_hours').value;
-  var cap   = document.getElementById('act_cap').value;
-  if (!name || !date || !hours || !cap) { alert('กรุณากรอกข้อมูลให้ครบ'); return; }
-  var org = currentAdmin.project !== 'ALL' ? currentAdmin.project : 'Admin';
-  callAPI('addActivity', {
-    name: name, type: document.getElementById('act_type').value,
-    date: date, hours: hours, capacity: cap, organizer: org,
-    location: document.getElementById('act_loc').value,
-    detail: document.getElementById('act_detail').value
-  }).then(function(res) {
-    showToast(res.success ? 'เพิ่มกิจกรรมสำเร็จ' : res.message);
-    if (res.success) { document.getElementById('addActivityForm').style.display = 'none'; loadAdminActivities(); }
-  });
-}
+  /* ===== NOTIFICATION DOT ===== */
+  .notif { position:relative; }
+  .notif-dot {
+    position:absolute; top:-4px; right:-4px;
+    width:10px; height:10px; background:var(--red);
+    border-radius:50%; border:2px solid white;
+  }
 
-function toggleActivityStatus(id, current) {
-  var ns = current === 'เปิดรับ' ? 'ปิดรับ' : 'เปิดรับ';
-  if (!confirm('เปลี่ยนสถานะเป็น "' + ns + '"?')) return;
-  callAPI('updateActivityStatus', { activityId: id, status: ns })
-    .then(function(res) { if (res.success) loadAdminActivities(); });
-}
 
-function loadMembers() {
-  var actId = document.getElementById('filterActivity').value;
-  if (!actId) { alert('กรุณาเลือกกิจกรรมก่อน'); return; }
-  callAPI('getMembersByActivity', { activityId: actId }).then(function(res) {
-    var tbody = document.getElementById('membersTable');
-    if (!res.success || !res.data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">ไม่มีผู้สมัคร</td></tr>';
-      return;
-    }
-    tbody.innerHTML = '';
-    res.data.forEach(function(m) {
-      var sc = m.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + m.volunteerCode + '</td><td><strong>' + m.fullName + '</strong></td>'
-        + '<td>' + (m.type||'-') + '</td><td>' + (m.department||'-') + '</td>'
-        + '<td>' + m.date + '</td><td>' + m.hours + ' ชม.</td>'
-        + '<td><span class="status-pill ' + sc + '">' + m.status + '</span></td>';
-      tbody.appendChild(tr);
-    });
-  });
-}
 
-function issueCerts(level, minHours) {
-  var ln = level === 'gold' ? 'ทอง' : level === 'silver' ? 'เงิน' : 'ทองแดง';
-  if (!confirm('ออกเกียรติบัตรระดับ' + ln + '?')) return;
-  callAPI('issueCertificates', { minHours: minHours, level: ln, approver: currentAdmin.name })
-    .then(function(res) {
-      var el = document.getElementById('certResult');
-      el.style.display = 'block';
-      el.textContent = res.success ? 'ออกเกียรติบัตรระดับ' + ln + ' จำนวน ' + (res.count||0) + ' ใบ' : res.message;
-    });
-}
 
-function loadAdminReport() {
-  if (!currentAdmin) return;
-  callAPI('getAdminReport', { project: currentAdmin.project }).then(function(res) {
-    if (!res.success) return;
-    var d = res.data;
-    var s = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v || '-'; };
-    s('adminStatAct', d['กิจกรรม']); s('adminStatVol', d['จิตอาสา']);
-    s('adminStatHours', d['ชั่วโมง']); s('adminStatPending', d['รออนุมัติ']);
-  });
-}
+</style>
+</head>
+<body>
 
-// ── Init ───────────────────────────────────────────────────
-(function() {
-  ['tab-record','hist-b','rep-person','rep-cert',
-   'admin-activities','admin-members','admin-cert','admin-report'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.style.display = 'none';
-  });
-  loadActivities();
-  loadSummary();
-})();
+<!-- USER LOGIN -->
+<div id="userLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
+    <div style="text-align:center;margin-bottom:24px;"><div style="font-size:48px;">🌿</div><h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-top:8px;">เข้าสู่ระบบ</h2></div>
+    <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">รหัสพนักงาน / นักศึกษา</label><input id="loginCode" type="text" placeholder="เช่น 6401001234" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;"></div>
+    <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">รหัสผ่าน</label><input id="loginPass" type="password" placeholder="รหัสผ่าน" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doUserLogin()"></div>
+    <div id="loginError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:12px;"><button onclick="doUserLogin()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#1a5f7a;color:white;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">เข้าสู่ระบบ</button><button onclick="closeModal('userLoginModal')" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button></div>
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:#6b7c93;">ยังไม่มีบัญชี? <a href="#" onclick="closeModal('userLoginModal');openModal('userSignupModal');" style="color:#1a5f7a;font-weight:600;text-decoration:none;">สมัครสมาชิก</a></div>
+  </div>
+</div>
+
+<!-- USER SIGNUP -->
+<div id="userSignupModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;overflow-y:auto;">
+  <div style="background:white;border-radius:20px;padding:36px;max-width:520px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);margin:auto;">
+    <div style="text-align:center;margin-bottom:20px;"><div style="font-size:40px;">✨</div><h2 style="font-family:Prompt,sans-serif;font-size:20px;color:#0d3d52;margin-top:6px;">สมัครสมาชิกจิตอาสา</h2></div>
+    <div style="background:#f7fafc;border:1.5px solid #d1dbe8;border-radius:10px;padding:12px;font-size:12px;line-height:1.7;margin-bottom:12px;">นโยบาย PDPA: ราชวิทยาลัยจุฬาภรณ์จะเก็บข้อมูลส่วนบุคคลเพื่อใช้ในระบบธนาคารจิตอาสา ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</div>
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px;border:1.5px solid #d1dbe8;border-radius:10px;margin-bottom:14px;"><input type="checkbox" id="signupPdpa1" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;"><span style="font-size:13px;">ยินยอมให้เก็บและใช้ข้อมูลส่วนบุคคล *</span></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">รหัส *</label><input id="su_code" type="text" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">ประเภท *</label><select id="su_type" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;"><option>นักศึกษา</option><option>บุคลากร</option></select></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">ชื่อ *</label><input id="su_fname" type="text" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">นามสกุล *</label><input id="su_lname" type="text" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">ตำแหน่ง/คณะ *</label><input id="su_pos" type="text" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">หน่วยงาน *</label><input id="su_dept" type="text" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">เบอร์โทร</label><input id="su_phone" type="tel" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">อีเมล</label><input id="su_email" type="email" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">รหัสผ่าน * (6+ ตัว)</label><input id="su_pass" type="password" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">ยืนยันรหัสผ่าน *</label><input id="su_pass2" type="password" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+    </div>
+    <div id="signupError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-top:12px;"></div>
+    <div style="display:flex;gap:12px;margin-top:16px;"><button onclick="doUserSignup()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#e8a838;color:#0d3d52;font-family:Sarabun,sans-serif;font-size:15px;font-weight:700;cursor:pointer;">สมัครสมาชิก</button><button onclick="closeModal('userSignupModal')" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button></div>
+    <div style="text-align:center;margin-top:12px;font-size:13px;color:#6b7c93;">มีบัญชีแล้ว? <a href="#" onclick="closeModal('userSignupModal');openModal('userLoginModal');" style="color:#1a5f7a;font-weight:600;text-decoration:none;">เข้าสู่ระบบ</a></div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="adminLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
+    <div style="text-align:center;margin-bottom:24px;"><div style="font-size:48px;">🔐</div><h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-top:8px;">Admin เข้าสู่ระบบ</h2></div>
+    <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Username</label><input id="adminUser" type="text" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;"></div>
+    <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Password</label><input id="adminPass" type="password" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+    <div id="adminLoginError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-bottom:14px;">Username หรือ Password ไม่ถูกต้อง</div>
+    <div style="display:flex;gap:12px;"><button onclick="doAdminLogin()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#1a5f7a;color:white;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">เข้าสู่ระบบ</button><button onclick="closeModal('adminLoginModal')" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#" onclick="showPage('home')">
+      <div class="logo-icon">🌿</div>
+      <div class="logo-text">
+        <strong>CRA Volunteer Bank</strong>
+        <span>ธนาคารจิตอาสา ราชวิทยาลัยจุฬาภรณ์</span>
+      </div>
+    </a>
+    <nav>
+      <div class="nav-links" style="display:flex;gap:2px;">
+        <button onclick="showPage('home')" class="active" id="nav-home">🏠 หน้าแรก</button>
+        <button onclick="showPage('activities')" id="nav-activities">📋 กิจกรรม</button>
+        <button onclick="showPage('register-time')" id="nav-register">⏰ ฝากเวลา</button>
+        <button onclick="showPage('history')" id="nav-history">📂 ประวัติ</button>
+        <button onclick="showPage('report')" id="nav-report">📊 รายงาน</button>
+      </div>
+      <div id="nav-profile-area">
+        <!-- Shown when NOT logged in -->
+        <button id="btn-nav-login" onclick="showUserLogin()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 16px;border-radius:8px;cursor:pointer;margin-right:4px;">
+          เข้าสู่ระบบ
+        </button>
+        <button id="btn-nav-signup" onclick="showUserSignup()" style="background:#e8a838;color:#0d3d52;font-family:Sarabun,sans-serif;font-size:13px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;border:none;">
+          สมัครสมาชิก
+        </button>
+        <!-- Shown when logged in -->
+        <button id="btn-nav-user" onclick="showPage('profile')" style="display:none;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;" class="notif">
+          👤 <span id="nav-username">ผู้ใช้</span>
+          <span class="notif-dot" id="nav-notif-dot" style="display:none;"></span>
+        </button>
+        <button id="btn-nav-logout" onclick="userLogout()" style="display:none;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);font-family:Sarabun,sans-serif;font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer;margin-left:4px;">
+          ออก
+        </button>
+      </div>
+      <button onclick="showAdminLogin()" id="nav-admin" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;margin-left:4px;">
+        🔐 Admin
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===== HOME PAGE ===== -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-content">
+        <h1>ธนาคารจิตอาสา ราชวิทยาลัยจุฬาภรณ์<br><span>CRA Volunteer Bank</span></h1>
+        <p>สะสมเวลาจิตอาสา สร้างคุณค่าให้สังคม บันทึกประวัติการปฏิบัติงานของท่านผ่านระบบออนไลน์</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary" onclick="showPage('register-time')">⏰ ฝากเวลาจิตอาสา</button>
+          <button class="btn btn-outline" onclick="showPage('activities')">📋 ดูกิจกรรมทั้งหมด</button>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-card"><div class="num">1,284</div><div class="lbl">จิตอาสาทั้งหมด</div></div>
+        <div class="stat-card"><div class="num">8,652</div><div class="lbl">ชั่วโมงรวม</div></div>
+        <div class="stat-card"><div class="num">47</div><div class="lbl">กิจกรรมปีนี้</div></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="icon" style="background:#edf6ff;">👥</div>
+        <div class="info"><div class="num" style="color:var(--primary)">842</div><div class="lbl">บุคลากรจิตอาสา</div></div>
+      </div>
+      <div class="stat-box">
+        <div class="icon" style="background:#f0fef5;">🎓</div>
+        <div class="info"><div class="num" style="color:var(--green)">442</div><div class="lbl">นักศึกษาจิตอาสา</div></div>
+      </div>
+      <div class="stat-box">
+        <div class="icon" style="background:#fffbea;">⏱️</div>
+        <div class="info"><div class="num" style="color:var(--accent)">8,652</div><div class="lbl">ชั่วโมงสะสม</div></div>
+      </div>
+      <div class="stat-box">
+        <div class="icon" style="background:#fef3f2;">🏆</div>
+        <div class="info"><div class="num" style="color:var(--red)">156</div><div class="lbl">เกียรติบัตรออก</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">🎯 กิจกรรมล่าสุด</div>
+    <div class="cards-grid">
+      <div class="activity-card" onclick="showPage('activities')">
+        <div class="card-img" style="background:linear-gradient(135deg,#d4f4e1,#a8e6cf)">
+          🌳<span class="card-badge">เปิดรับ</span>
+        </div>
+        <div class="card-body">
+          <h3>ปลูกป่าชายเลน ปี 2568</h3>
+          <p>ร่วมกันปลูกต้นไม้เพื่ออนุรักษ์สิ่งแวดล้อมชายฝั่ง จ.สมุทรสาคร</p>
+          <div class="card-meta">
+            <span>📅 15 ก.พ. 68</span>
+            <span>⏱️ 8 ชม.</span>
+            <span>👥 48/60 คน</span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="tag" style="background:#d4f4e1;color:#1a7a42">🌱 สิ่งแวดล้อม</span>
+          </div>
+        </div>
+      </div>
+      <div class="activity-card" onclick="showPage('activities')">
+        <div class="card-img" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)">
+          ❤️‍🩹<span class="card-badge">เปิดรับ</span>
+        </div>
+        <div class="card-body">
+          <h3>บริการตรวจสุขภาพฟรี</h3>
+          <p>ให้บริการตรวจสุขภาพเบื้องต้นแก่ชุมชน โดยนักศึกษาพยาบาล</p>
+          <div class="card-meta">
+            <span>📅 22 ก.พ. 68</span>
+            <span>⏱️ 6 ชม.</span>
+            <span>👥 32/40 คน</span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="tag" style="background:#ffecd2;color:#9a4200">🏥 บริการสุขภาพ</span>
+          </div>
+        </div>
+      </div>
+      <div class="activity-card" onclick="showPage('activities')">
+        <div class="card-img" style="background:linear-gradient(135deg,#e8d8f0,#c3aae0)">
+          📚<span class="card-badge" style="background:var(--accent);color:var(--primary-dark)">ใหม่!</span>
+        </div>
+        <div class="card-body">
+          <h3>สอนหนังสือน้องๆ ชุมชน</h3>
+          <p>อาสาสมัครสอนวิชาการแก่นักเรียนยากไร้ในชุมชนใกล้เคียง</p>
+          <div class="card-meta">
+            <span>📅 1 มี.ค. 68</span>
+            <span>⏱️ 4 ชม.</span>
+            <span>👥 12/30 คน</span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="tag" style="background:#e8d8f0;color:#5a2d8a">📖 สอนหนังสือ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">📢 ประกาศ / ข่าวสาร</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px;">
+      <div class="alert alert-info">
+        <span style="font-size:20px;">ℹ️</span>
+        <div><strong>เปิดรับสมัครกิจกรรมใหม่!</strong><br>กิจกรรมจิตอาสาประจำเดือนมีนาคม 2568 เปิดรับสมัครแล้ว</div>
+      </div>
+      <div class="alert alert-success">
+        <span style="font-size:20px;">🏆</span>
+        <div><strong>เกียรติบัตรพร้อมแล้ว!</strong><br>เกียรติบัตรกิจกรรมเดือนมกราคม 2568 สามารถดาวน์โหลดได้แล้ว</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ACTIVITIES PAGE ===== -->
+  <div class="page" id="page-activities">
+    <div class="section-title">📋 กิจกรรมจิตอาสาทั้งหมด</div>
+    <div class="search-bar">
+      <input type="text" placeholder="🔍 ค้นหากิจกรรม...">
+      <select>
+        <option>ทุกประเภท</option>
+        <option>ด้านรับ</option>
+        <option>ดูแลเด็ก/คนแก่</option>
+        <option>งานฝีมือ</option>
+        <option>เล่านิทาน</option>
+        <option>บริการสุขภาพ</option>
+        <option>สิ่งแวดล้อม</option>
+        <option>งานช่าง</option>
+        <option>สอนหนังสือ</option>
+      </select>
+      <select>
+        <option>ทุกสถานะ</option>
+        <option>เปิดรับสมัคร</option>
+        <option>ปิดรับแล้ว</option>
+        <option>เสร็จสิ้น</option>
+      </select>
+      <button class="btn btn-primary" style="padding:11px 20px;">ค้นหา</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>กิจกรรม</th>
+            <th>ประเภท</th>
+            <th>วันที่</th>
+            <th>เวลา</th>
+            <th>หน่วยงานจัด</th>
+            <th>ผู้สมัคร</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ปลูกป่าชายเลน ปี 2568</strong></td>
+            <td><span class="tag" style="background:#d4f4e1;color:#1a7a42;">สิ่งแวดล้อม</span></td>
+            <td>15 ก.พ. 68</td>
+            <td>8 ชม.</td>
+            <td>กองกิจการนักศึกษา</td>
+            <td>48/60</td>
+            <td><span class="status-pill pill-green">เปิดรับ</span></td>
+            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
+          </tr>
+          <tr>
+            <td><strong>บริการตรวจสุขภาพฟรี</strong></td>
+            <td><span class="tag" style="background:#ffecd2;color:#9a4200;">สุขภาพ</span></td>
+            <td>22 ก.พ. 68</td>
+            <td>6 ชม.</td>
+            <td>คณะพยาบาลศาสตร์</td>
+            <td>32/40</td>
+            <td><span class="status-pill pill-green">เปิดรับ</span></td>
+            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
+          </tr>
+          <tr>
+            <td><strong>สอนหนังสือน้องๆ ชุมชน</strong></td>
+            <td><span class="tag" style="background:#e8d8f0;color:#5a2d8a;">สอนหนังสือ</span></td>
+            <td>1 มี.ค. 68</td>
+            <td>4 ชม.</td>
+            <td>คณะครุศาสตร์</td>
+            <td>12/30</td>
+            <td><span class="status-pill pill-green">เปิดรับ</span></td>
+            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
+          </tr>
+          <tr>
+            <td><strong>งานช่างซ่อมบ้านชุมชน</strong></td>
+            <td><span class="tag" style="background:#d6eeff;color:#0d5a9a;">งานช่าง</span></td>
+            <td>8 มี.ค. 68</td>
+            <td>8 ชม.</td>
+            <td>คณะวิศวกรรมศาสตร์</td>
+            <td>20/25</td>
+            <td><span class="status-pill pill-orange">ใกล้เต็ม</span></td>
+            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
+          </tr>
+          <tr>
+            <td><strong>ค่ายอาสาพัฒนาโรงเรียน</strong></td>
+            <td><span class="tag" style="background:#ffecd2;color:#9a4200;">ด้านรับ</span></td>
+            <td>20 ม.ค. 68</td>
+            <td>16 ชม.</td>
+            <td>สภานักศึกษา</td>
+            <td>60/60</td>
+            <td><span class="status-pill pill-red">ปิดรับ</span></td>
+            <td><button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>เต็มแล้ว</button></td>
+          </tr>
+          <tr>
+            <td><strong>เล่านิทานให้น้องฟัง</strong></td>
+            <td><span class="tag" style="background:#e8d8f0;color:#5a2d8a;">เล่านิทาน</span></td>
+            <td>10 ม.ค. 68</td>
+            <td>3 ชม.</td>
+            <td>คณะมนุษยศาสตร์</td>
+            <td>25/25</td>
+            <td><span class="status-pill pill-blue">เสร็จสิ้น</span></td>
+            <td><button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>จบแล้ว</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REGISTER TIME PAGE ===== -->
+  <div class="page" id="page-register-time">
+    <div class="section-title">⏰ ฝากเวลาจิตอาสา</div>
+    <div class="alert alert-info" style="margin-bottom:24px;">
+      <span style="font-size:18px;">ℹ️</span>
+      <div>สามารถฝากเวลาได้ <strong>น้อยที่สุด 1 ชั่วโมง</strong> และ <strong>มากที่สุด 40 ชั่วโมง</strong> ต่อครั้ง</div>
+    </div>
+    <div class="form-card">
+      <div class="tabs" style="margin-bottom:28px;">
+        <button class="tab-btn active" onclick="switchTab(this,'tab-self')">📝 แสดงเจตนาสมัคร</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-record')">✅ บันทึกเวลาหลังกิจกรรม</button>
+      </div>
+
+      <!-- Tab: แสดงเจตนาสมัคร -->
+      <div id="tab-self">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
+            <input type="text" value="6401001234" readonly style="background:#f7fafc;">
+            <div class="input-hint">Autofill จากฐานข้อมูล</div>
+          </div>
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล <span class="req">*</span></label>
+            <input type="text" value="น.ส.สมใจ ใจดี" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>ตำแหน่ง/คณะ <span class="req">*</span></label>
+            <input type="text" value="นักศึกษา / คณะบริหารธุรกิจ" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>หน่วยงาน <span class="req">*</span></label>
+            <input type="text" value="คณะบริหารธุรกิจ" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>เบอร์โทร</label>
+            <input type="text" value="081-234-5678">
+          </div>
+          <div class="form-group">
+            <label>อีเมล</label>
+            <input type="email" value="somjai@cra.ac.th">
+          </div>
+          <div class="form-group full">
+            <label>กิจกรรมที่ต้องการสมัคร <span class="req">*</span></label>
+            <select>
+              <option>-- เลือกกิจกรรม --</option>
+              <option>ปลูกป่าชายเลน ปี 2568 (15 ก.พ. 68)</option>
+              <option>บริการตรวจสุขภาพฟรี (22 ก.พ. 68)</option>
+              <option>สอนหนังสือน้องๆ ชุมชน (1 มี.ค. 68)</option>
+              <option>งานช่างซ่อมบ้านชุมชน (8 มี.ค. 68)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ประเภทกิจกรรม <span class="req">*</span></label>
+            <select>
+              <option>ด้านรับ</option>
+              <option>ดูแลเด็ก/คนแก่</option>
+              <option>งานฝีมือ</option>
+              <option>เล่านิทาน</option>
+              <option>บริการสุขภาพ</option>
+              <option>สิ่งแวดล้อม</option>
+              <option>งานช่าง</option>
+              <option>สอนหนังสือ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>จำนวนเวลาที่คาดว่าจะได้ (ชม.) <span class="req">*</span></label>
+            <input type="number" min="1" max="40" value="8">
+            <div class="input-hint">ระบุ 1-40 ชั่วโมง</div>
+          </div>
+          <div class="form-group full">
+            <label>เหตุผลที่ต้องการเข้าร่วม</label>
+            <textarea placeholder="บอกเหตุผลที่ท่านต้องการเป็นจิตอาสาในกิจกรรมนี้..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-green" onclick="showSuccess()">✅ ยืนยันการสมัคร</button>
+          <button class="btn btn-gray">ล้างข้อมูล</button>
+        </div>
+      </div>
+
+      <!-- Tab: บันทึกเวลา -->
+      <div id="tab-record" style="display:none;">
+        <div class="alert alert-warn">
+          <span>⚠️</span>
+          <div>การบันทึกเวลาจิตอาสาจะต้องได้รับการอนุมัติจากหน่วยงานจัดกิจกรรมก่อนจึงจะมีผล</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
+            <input type="text" value="6401001234" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล</label>
+            <input type="text" value="น.ส.สมใจ ใจดี" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group full">
+            <label>กิจกรรมที่เข้าร่วม <span class="req">*</span></label>
+            <select>
+              <option>-- เลือกกิจกรรมที่สมัครไว้ --</option>
+              <option>ปลูกป่าชายเลน ปี 2568 (15 ก.พ. 68)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>วันที่ทำกิจกรรม <span class="req">*</span></label>
+            <input type="date" value="2025-02-15">
+          </div>
+          <div class="form-group">
+            <label>จำนวนชั่วโมงจริง <span class="req">*</span></label>
+            <input type="number" min="1" max="40" value="8">
+          </div>
+          <div class="form-group">
+            <label>เวลาเริ่ม</label>
+            <input type="time" value="08:00">
+          </div>
+          <div class="form-group">
+            <label>เวลาสิ้นสุด</label>
+            <input type="time" value="17:00">
+          </div>
+          <div class="form-group full">
+            <label>อัปโหลดหลักฐาน (ภาพถ่าย)</label>
+            <input type="file" accept="image/*" multiple>
+            <div class="input-hint">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 5MB</div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-green" onclick="showSuccess()">📤 ส่งบันทึกเวลา</button>
+          <button class="btn btn-gray">ล้างข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HISTORY PAGE ===== -->
+  <div class="page" id="page-history">
+    <div class="section-title">📂 แฟ้มประวัติจิตอาสา</div>
+    <div class="alert alert-info" style="margin-bottom:24px;">
+      <span>🔒</span>
+      <div>ท่านสามารถดูข้อมูลส่วนตัวของท่านเองได้เท่านั้น ไม่สามารถแก้ไขข้อมูลส่วน ก. ได้</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:24px;">
+      <!-- Left: Summary -->
+      <div>
+        <div class="form-card" style="margin-bottom:18px;">
+          <div style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+            <div style="font-size:48px;margin-bottom:8px;">👤</div>
+            <div style="font-weight:700;font-size:16px;">น.ส.สมใจ ใจดี</div>
+            <div style="color:var(--text-muted);font-size:13px;">6401001234</div>
+            <div style="color:var(--text-muted);font-size:13px;">คณะบริหารธุรกิจ</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-muted);">⏱️ ชั่วโมงสะสม</span>
+              <strong style="color:var(--primary);font-size:18px;font-family:'Prompt',sans-serif;">24 ชม.</strong>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:60%;"></div></div>
+            <div style="font-size:12px;color:var(--text-muted);text-align:right;">เป้าหมาย 40 ชม./ปี</div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:13px;color:var(--text-muted);">📋 กิจกรรม</span>
+              <strong>6 ครั้ง</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:13px;color:var(--text-muted);">🏆 เกียรติบัตร</span>
+              <strong>2 ใบ</strong>
+            </div>
+          </div>
+        </div>
+        <div class="form-card">
+          <div style="font-weight:600;margin-bottom:12px;">🔑 จัดการบัญชี</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button class="btn btn-gray" style="justify-content:center;padding:10px;">🔒 เปลี่ยนรหัสผ่าน</button>
+            <button class="btn btn-gray" style="justify-content:center;padding:10px;">📄 ดาวน์โหลดเกียรติบัตร</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Timeline -->
+      <div>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab(this,'hist-a')">📋 ข้อมูลกิจกรรม (ก.)</button>
+          <button class="tab-btn" onclick="switchTab(this,'hist-b')">⏰ เวลาฝาก (ข.)</button>
+        </div>
+
+        <div id="hist-a">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot done"></div>
+              <div class="timeline-date">15 กุมภาพันธ์ 2568</div>
+              <div class="timeline-content">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <h4>ปลูกป่าชายเลน ปี 2568</h4>
+                  <span class="status-pill pill-green">อนุมัติ</span>
+                </div>
+                <p>หน่วยงาน: กองกิจการนักศึกษา | ประเภท: สิ่งแวดล้อม</p>
+                <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--text-muted);">
+                  <span>⏱️ 8 ชั่วโมง</span>
+                  <span>✅ ผ่านการตรวจสอบ</span>
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot done"></div>
+              <div class="timeline-date">10 มกราคม 2568</div>
+              <div class="timeline-content">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <h4>เล่านิทานให้น้องฟัง</h4>
+                  <span class="status-pill pill-green">อนุมัติ</span>
+                </div>
+                <p>หน่วยงาน: คณะมนุษยศาสตร์ | ประเภท: เล่านิทาน</p>
+                <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--text-muted);">
+                  <span>⏱️ 3 ชั่วโมง</span>
+                  <span>✅ ผ่านการตรวจสอบ</span>
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-date">1 มีนาคม 2568</div>
+              <div class="timeline-content">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <h4>สอนหนังสือน้องๆ ชุมชน</h4>
+                  <span class="status-pill pill-orange">รอการอนุมัติ</span>
+                </div>
+                <p>หน่วยงาน: คณะครุศาสตร์ | ประเภท: สอนหนังสือ</p>
+                <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--text-muted);">
+                  <span>⏱️ 4 ชั่วโมง (รอยืนยัน)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="hist-b" style="display:none;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>วันที่ฝาก</th><th>กิจกรรม</th><th>ชั่วโมง</th><th>สะสมรวม</th><th>สถานะ</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>15 ก.พ. 68</td><td>ปลูกป่าชายเลน</td><td>8 ชม.</td><td>24 ชม.</td><td><span class="status-pill pill-green">อนุมัติ</span></td></tr>
+                <tr><td>10 ม.ค. 68</td><td>เล่านิทานให้น้องฟัง</td><td>3 ชม.</td><td>16 ชม.</td><td><span class="status-pill pill-green">อนุมัติ</span></td></tr>
+                <tr><td>1 มี.ค. 68</td><td>สอนหนังสือน้องๆ</td><td>4 ชม.</td><td>-</td><td><span class="status-pill pill-orange">รอยืนยัน</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REPORT PAGE ===== -->
+  <div class="page" id="page-report">
+    <div class="section-title">📊 รายงานสรุป</div>
+    <div class="alert alert-warn" style="margin-bottom:24px;">
+      <span>👑</span>
+      <div>Admin หน่วยงานจัดกิจกรรม: เรียกดูข้อมูลกิจกรรมของตัวเองได้ | Admin ระบบ: เรียกดูทั้งหมด</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'rep-summary')">📈 ภาพรวม</button>
+      <button class="tab-btn" onclick="switchTab(this,'rep-person')">👤 รายบุคคล</button>
+      <button class="tab-btn" onclick="switchTab(this,'rep-cert')">🏆 เกียรติบัตร</button>
+    </div>
+
+    <div id="rep-summary">
+      <div class="stats-row" style="margin-bottom:24px;">
+        <div class="stat-box">
+          <div class="icon" style="background:#edf6ff;">📋</div>
+          <div class="info"><div class="num" style="color:var(--primary)">47</div><div class="lbl">กิจกรรมทั้งหมด</div></div>
+        </div>
+        <div class="stat-box">
+          <div class="icon" style="background:#f0fef5;">⏱️</div>
+          <div class="info"><div class="num" style="color:var(--green)">8,652</div><div class="lbl">ชั่วโมงรวม</div></div>
+        </div>
+        <div class="stat-box">
+          <div class="icon" style="background:#fffbea;">👥</div>
+          <div class="info"><div class="num" style="color:var(--accent)">1,284</div><div class="lbl">จิตอาสา</div></div>
+        </div>
+        <div class="stat-box">
+          <div class="icon" style="background:#fef3f2;">🏆</div>
+          <div class="info"><div class="num" style="color:var(--red)">156</div><div class="lbl">เกียรติบัตร</div></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div class="form-card">
+          <div style="font-weight:600;margin-bottom:16px;font-family:'Prompt',sans-serif;">📊 กิจกรรมตามประเภท</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>🌱 สิ่งแวดล้อม</span><span>2,400 ชม.</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:75%;background:linear-gradient(to right,#27ae60,#2ecc71);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>🏥 บริการสุขภาพ</span><span>1,800 ชม.</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:55%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>📖 สอนหนังสือ</span><span>1,200 ชม.</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:38%;background:linear-gradient(to right,#8e44ad,#9b59b6);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>🔧 งานช่าง</span><span>980 ชม.</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:30%;background:linear-gradient(to right,#e67e22,#f39c12);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>📚 อื่นๆ</span><span>2,272 ชม.</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:70%;background:linear-gradient(to right,#e74c3c,#c0392b);"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-card">
+          <div style="font-weight:600;margin-bottom:16px;font-family:'Prompt',sans-serif;">🏢 หน่วยงานอันดับต้น</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#f7fafc;border-radius:10px;">
+              <span style="font-size:20px;">🥇</span>
+              <div style="flex:1;"><div style="font-weight:600;font-size:14px;">กองกิจการนักศึกษา</div><div style="font-size:12px;color:var(--text-muted);">18 กิจกรรม | 3,200 ชม.</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#f7fafc;border-radius:10px;">
+              <span style="font-size:20px;">🥈</span>
+              <div style="flex:1;"><div style="font-weight:600;font-size:14px;">คณะพยาบาลศาสตร์</div><div style="font-size:12px;color:var(--text-muted);">12 กิจกรรม | 2,100 ชม.</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#f7fafc;border-radius:10px;">
+              <span style="font-size:20px;">🥉</span>
+              <div style="flex:1;"><div style="font-weight:600;font-size:14px;">คณะครุศาสตร์</div><div style="font-size:12px;color:var(--text-muted);">8 กิจกรรม | 1,450 ชม.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="rep-person" style="display:none;">
+      <div class="search-bar">
+        <input type="text" placeholder="🔍 ค้นหาชื่อ หรือรหัสพนักงาน/นักศึกษา...">
+        <select><option>ทุกหน่วยงาน</option><option>คณะบริหารธุรกิจ</option><option>คณะพยาบาลศาสตร์</option></select>
+        <button class="btn btn-primary" style="padding:11px 20px;">ค้นหา</button>
+        <button class="btn btn-gray" style="padding:11px 20px;">📥 ส่งออก Excel</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>หน่วยงาน</th><th>กิจกรรม</th><th>ชั่วโมงรวม</th><th>เกียรติบัตร</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>6401001234</td><td>น.ส.สมใจ ใจดี</td><td><span class="tag" style="background:#d6eeff;color:#0d5a9a;">นักศึกษา</span></td><td>คณะบริหารธุรกิจ</td><td>6</td><td><strong style="color:var(--primary);">24 ชม.</strong></td><td><button class="btn btn-outline" style="color:var(--primary);border-color:var(--primary);padding:5px 12px;font-size:12px;">ออกใบ</button></td>
+            </tr>
+            <tr>
+              <td>6305002345</td><td>นายสมศักดิ์ ขยันดี</td><td><span class="tag" style="background:#d4f4e1;color:#1a7a42;">บุคลากร</span></td><td>กองกิจการนักศึกษา</td><td>12</td><td><strong style="color:var(--primary);">48 ชม.</strong></td><td><button class="btn btn-outline" style="color:var(--primary);border-color:var(--primary);padding:5px 12px;font-size:12px;">ออกใบ</button></td>
+            </tr>
+            <tr>
+              <td>6501003456</td><td>น.ส.สุดา รักดี</td><td><span class="tag" style="background:#d6eeff;color:#0d5a9a;">นักศึกษา</span></td><td>คณะพยาบาลศาสตร์</td><td>8</td><td><strong style="color:var(--primary);">32 ชม.</strong></td><td><button class="btn btn-outline" style="color:var(--primary);border-color:var(--primary);padding:5px 12px;font-size:12px;">ออกใบ</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="rep-cert" style="display:none;">
+      <div class="alert alert-success">
+        <span>🏆</span>
+        <div>เกียรติบัตรจะถูกออกให้อัตโนมัติเมื่อจิตอาสาสะสมครบตามเกณฑ์ที่กำหนด</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+        <div class="form-card" style="text-align:center;border:2px solid var(--accent);">
+          <div style="font-size:48px;margin-bottom:12px;">🥉</div>
+          <div style="font-family:'Prompt',sans-serif;font-size:18px;font-weight:700;color:var(--accent);">ระดับทองแดง</div>
+          <div style="color:var(--text-muted);font-size:14px;margin:8px 0;">8 ชั่วโมงขึ้นไป</div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);font-family:'Prompt',sans-serif;">642 คน</div>
+        </div>
+        <div class="form-card" style="text-align:center;border:2px solid #aaa;">
+          <div style="font-size:48px;margin-bottom:12px;">🥈</div>
+          <div style="font-family:'Prompt',sans-serif;font-size:18px;font-weight:700;color:#888;">ระดับเงิน</div>
+          <div style="color:var(--text-muted);font-size:14px;margin:8px 0;">24 ชั่วโมงขึ้นไป</div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);font-family:'Prompt',sans-serif;">284 คน</div>
+        </div>
+        <div class="form-card" style="text-align:center;border:2px solid #f0c040;">
+          <div style="font-size:48px;margin-bottom:12px;">🥇</div>
+          <div style="font-family:'Prompt',sans-serif;font-size:18px;font-weight:700;color:#c09000;">ระดับทอง</div>
+          <div style="color:var(--text-muted);font-size:14px;margin:8px 0;">40 ชั่วโมงขึ้นไป</div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);font-family:'Prompt',sans-serif;">156 คน</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE PAGE ===== -->
+  <div class="page" id="page-profile">
+    <div class="section-title">👤 โปรไฟล์ของฉัน</div>
+    <div class="profile-header">
+      <div class="avatar">😊</div>
+      <div class="profile-info">
+        <h2>น.ส.สมใจ ใจดี</h2>
+        <p>รหัส: 6401001234 | คณะบริหารธุรกิจ | ชั้นปีที่ 2<br>อีเมล: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="71021e1c1b1018311203105f10125f0519">[email&#160;protected]</a> | โทร: 081-234-5678</p>
+        <div class="profile-badges">
+          <span class="badge">🎓 นักศึกษา</span>
+          <span class="badge">⏱️ 24 ชม.</span>
+          <span class="badge">🥈 ระดับเงิน</span>
+          <span class="badge">✅ PDPA ยืนยันแล้ว</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div class="form-card">
+        <div style="font-weight:600;margin-bottom:16px;font-family:'Prompt',sans-serif;">📊 สถิติจิตอาสาของฉัน</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--text-muted);">ชั่วโมงสะสม</span>
+            <strong style="font-size:20px;color:var(--primary);font-family:'Prompt',sans-serif;">24 / 40 ชม.</strong>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:60%;"></div></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">กิจกรรมที่เข้าร่วม</span><strong>6 ครั้ง</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">กิจกรรมที่รอ</span><strong>1 ครั้ง</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">เกียรติบัตรที่ได้รับ</span><strong>2 ใบ</strong></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div style="font-weight:600;margin-bottom:16px;font-family:'Prompt',sans-serif;">🏆 สิทธิประโยชน์</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f7fafc;border-radius:10px;">
+            <span>🎖️</span><div><div style="font-weight:600;font-size:14px;">เกียรติบัตรจิตอาสา</div><div style="font-size:12px;color:var(--text-muted);">ครบ 8, 24, 40 ชั่วโมง</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f7fafc;border-radius:10px;">
+            <span>🎁</span><div><div style="font-weight:600;font-size:14px;">ของขวัญพิเศษ</div><div style="font-size:12px;color:var(--text-muted);">ระดับทอง 40+ ชั่วโมง</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f7fafc;border-radius:10px;">
+            <span>⭐</span><div><div style="font-weight:600;font-size:14px;">บุคลากรดีเด่น</div><div style="font-size:12px;color:var(--text-muted);">คัดเลือกประจำปี</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toastMsg" style="display:none;position:fixed;bottom:32px;right:32px;background:#27ae60;color:white;padding:16px 24px;border-radius:14px;z-index:8000;font-weight:600;font-size:15px;"></div>
+
+
+<div id="page-admin" class="page">
+  <div style="background:linear-gradient(135deg,#0d3d52,#1a5f7a);border-radius:16px;padding:24px 28px;color:white;display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+    <div>
+      <div style="font-family:Prompt,sans-serif;font-size:20px;font-weight:700;">Admin Panel</div>
+      <div style="font-size:13px;opacity:.8;margin-top:4px;" id="adminWelcome">ยินดีต้อนรับ Admin</div>
+    </div>
+    <button onclick="adminLogout()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:8px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">ออกจากระบบ</button>
+  </div>
+  <div class="tabs" style="margin-bottom:24px;">
+    <button class="tab-btn active" onclick="switchTab(this,'admin-approve')">อนุมัติเวลา</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-activities')">จัดการกิจกรรม</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-members')">ผู้สมัคร</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-cert')">เกียรติบัตร</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-report')">รายงาน</button>
+  </div>
+  <div id="admin-approve">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">รายการรออนุมัติ</div>
+      <button onclick="loadPendingLogs()" style="background:#1a5f7a;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">โหลดใหม่</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>ชื่อจิตอาสา</th><th>รหัส</th><th>กิจกรรม</th><th>วันที่</th><th>ชั่วโมง</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="pendingLogsTable"><tr><td colspan="7" style="text-align:center;color:#6b7c93;padding:24px;">กดปุ่มโหลดใหม่เพื่อดึงข้อมูล</td></tr></tbody></table></div>
+  </div>
+  <div id="admin-activities" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">กิจกรรมของโครงการ</div>
+      <button onclick="showAddActivity()" style="background:#27ae60;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">เพิ่มกิจกรรม</button>
+    </div>
+    <div id="addActivityForm" style="display:none;background:white;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(26,95,122,.1);margin-bottom:24px;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:18px;color:#0d3d52;">เพิ่มกิจกรรมใหม่</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชื่อกิจกรรม *</label><input id="act_name" type="text" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ประเภท *</label><select id="act_type" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;"><option>สิ่งแวดล้อม</option><option>บริการสุขภาพ</option><option>สอนหนังสือ</option><option>เล่านิทาน</option><option>งานช่าง</option><option>อื่นๆ</option></select></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">วันที่ *</label><input id="act_date" type="date" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชั่วโมง *</label><input id="act_hours" type="number" min="1" max="40" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">จำนวนรับ *</label><input id="act_cap" type="number" min="1" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">สถานที่</label><input id="act_loc" type="text" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">รายละเอียด</label><textarea id="act_detail" rows="3" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;"></textarea></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button onclick="submitAddActivity()" style="background:#27ae60;color:white;border:none;padding:12px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;font-weight:600;cursor:pointer;">บันทึก</button>
+        <button onclick="document.getElementById('addActivityForm').style.display='none'" style="background:#ecf0f1;color:#1a2332;border:none;padding:12px 20px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>กิจกรรม</th><th>ประเภท</th><th>วันที่</th><th>ชั่วโมง</th><th>ผู้สมัคร</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="adminActivitiesTable"><tr><td colspan="7" style="text-align:center;color:#6b7c93;padding:24px;">กำลังโหลด...</td></tr></tbody></table></div>
+  </div>
+  <div id="admin-members" style="display:none;">
+    <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;margin-bottom:16px;">รายชื่อผู้สมัครกิจกรรม</div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;">
+      <select id="filterActivity" style="padding:10px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;min-width:200px;outline:none;"><option value="">-- เลือกกิจกรรม --</option></select>
+      <button onclick="loadMembers()" style="background:#1a5f7a;color:white;border:none;padding:10px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">ค้นหา</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>หน่วยงาน</th><th>วันที่</th><th>ชั่วโมง</th><th>สถานะ</th></tr></thead><tbody id="membersTable"><tr><td colspan="7" style="text-align:center;color:#6b7c93;padding:24px;">เลือกกิจกรรมเพื่อดูรายชื่อ</td></tr></tbody></table></div>
+  </div>
+  <div id="admin-cert" style="display:none;">
+    <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;margin-bottom:16px;">ออกเกียรติบัตร</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+      <div style="background:white;border-radius:16px;padding:20px;text-align:center;border:2px solid #cd7f32;"><div style="font-size:36px;">🥉</div><div style="font-family:Prompt,sans-serif;font-weight:700;color:#cd7f32;margin:8px 0;">ระดับทองแดง</div><div style="font-size:13px;color:#6b7c93;">8 ชั่วโมงขึ้นไป</div><button onclick="issueCerts('bronze',8)" style="margin-top:12px;background:#cd7f32;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;width:100%;">ออกใบทั้งหมด</button></div>
+      <div style="background:white;border-radius:16px;padding:20px;text-align:center;border:2px solid #aaa;"><div style="font-size:36px;">🥈</div><div style="font-family:Prompt,sans-serif;font-weight:700;color:#888;margin:8px 0;">ระดับเงิน</div><div style="font-size:13px;color:#6b7c93;">24 ชั่วโมงขึ้นไป</div><button onclick="issueCerts('silver',24)" style="margin-top:12px;background:#888;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;width:100%;">ออกใบทั้งหมด</button></div>
+      <div style="background:white;border-radius:16px;padding:20px;text-align:center;border:2px solid #f0c040;"><div style="font-size:36px;">🥇</div><div style="font-family:Prompt,sans-serif;font-weight:700;color:#c09000;margin:8px 0;">ระดับทอง</div><div style="font-size:13px;color:#6b7c93;">40 ชั่วโมงขึ้นไป</div><button onclick="issueCerts('gold',40)" style="margin-top:12px;background:#c09000;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;width:100%;">ออกใบทั้งหมด</button></div>
+    </div>
+    <div id="certResult" style="display:none;background:#e8f8f0;border:1.5px solid #b3e8cf;border-radius:12px;padding:16px 20px;font-size:14px;color:#1a5c38;"></div>
+  </div>
+  <div id="admin-report" style="display:none;">
+    <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;margin-bottom:16px;">รายงานโครงการ</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+      <div style="background:white;border-radius:14px;padding:20px;text-align:center;"><div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#1a5f7a;" id="adminStatAct">-</div><div style="font-size:13px;color:#6b7c93;margin-top:4px;">กิจกรรม</div></div>
+      <div style="background:white;border-radius:14px;padding:20px;text-align:center;"><div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#27ae60;" id="adminStatVol">-</div><div style="font-size:13px;color:#6b7c93;margin-top:4px;">จิตอาสา</div></div>
+      <div style="background:white;border-radius:14px;padding:20px;text-align:center;"><div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#e8a838;" id="adminStatHours">-</div><div style="font-size:13px;color:#6b7c93;margin-top:4px;">ชั่วโมงรวม</div></div>
+      <div style="background:white;border-radius:14px;padding:20px;text-align:center;"><div style="font-size:28px;font-weight:700;font-family:Prompt,sans-serif;color:#e74c3c;" id="adminStatPending">-</div><div style="font-size:13px;color:#6b7c93;margin-top:4px;">รออนุมัติ</div></div>
+    </div>
+    <button onclick="loadAdminReport()" style="background:#1a5f7a;color:white;border:none;padding:11px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">โหลดรายงาน</button>
+  </div>
+</div>
+
+
+<script src="app.js"></script>
+</body>
+</html>
