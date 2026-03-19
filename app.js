@@ -72,6 +72,7 @@ function switchTab(btn, targetId) {
   if (target) target.style.display = 'block';
   if (targetId === 'admin-manage') loadAdminList();
   if (targetId === 'admin-announce') loadAdminAnnouncements();
+  if (targetId === 'admin-rewards')  loadRewards();
 }
 
 function showToast(msg) {
@@ -329,13 +330,15 @@ function loadSummary() {
     if (!res.success) return;
     var d = res.data;
     var s = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = (val !== undefined && val !== '') ? val : '0'; };
-    s('statTotal',    d['จิตอาสาทั้งหมด']);
-    s('statHours',    d['ชั่วโมงที่อนุมัติแล้ว']);
-    s('statActs',     d['กิจกรรมทั้งหมด']);
-    s('statStaff',    d['บุคลากร']);
-    s('statStudent',  d['นักศึกษา']);
-    s('statHoursAll', d['ชั่วโมงที่อนุมัติแล้ว']);
-    s('statCerts',    d['รออนุมัติ'] !== undefined ? '0' : '0');
+    s('statTotal',      d['จิตอาสาทั้งหมด']);
+    s('statHoursDone',  d['ชั่วโมงทำแล้ว']);
+    s('statHoursPledge',d['ชั่วโมงตั้งใจ']);
+    s('statActs',       d['กิจกรรมทั้งหมด']);
+    s('statStaff',      d['บุคลากร']);
+    s('statStudent',    d['นักศึกษา']);
+    s('statHoursAll',   d['ชั่วโมงทำแล้ว']);
+    s('statHours',      d['ชั่วโมงทำแล้ว']);
+    s('statCerts',      '0');
   });
 }
 
@@ -1380,6 +1383,290 @@ function deleteAnnounce(id) {
     if (res.success) { showToast('ลบประกาศสำเร็จ'); loadAdminAnnouncements(); loadAnnouncements(); }
     else alert(res.message);
   });
+}
+
+// ── Rewards ────────────────────────────────────────────────
+function loadRewards() {
+  callAPI('getRewards').then(function(res) {
+    var tbody   = document.getElementById('rewardsTable');
+    var preview = document.getElementById('rewardsPreview');
+    if (!tbody) return;
+
+    if (!res.success || !res.data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">ยังไม่มีรางวัล กด "เพิ่มรางวัล" เพื่อเริ่มต้น</td></tr>';
+      if (preview) preview.innerHTML = '';
+      return;
+    }
+
+    // Preview cards
+    if (preview) {
+      preview.innerHTML = '';
+      res.data.filter(function(r){ return r.active === 'TRUE'; }).forEach(function(r) {
+        var card = document.createElement('div');
+        card.style.cssText = 'background:white;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(26,95,122,.08);border:2px solid #e8f4f8;display:flex;align-items:center;gap:16px;';
+        var hourtypeLabel = r.hourtype === 'รวม' ? 'ชม. รวม' : 'ชม. ทำกิจกรรม';
+        card.innerHTML = '<div style="font-size:40px;flex-shrink:0;">' + (r.icon||'🏅') + '</div>'
+          + '<div style="flex:1;">'
+          + '<div style="font-family:Prompt,sans-serif;font-weight:700;font-size:16px;color:#0d3d52;">' + r.name + '</div>'
+          + '<div style="font-size:13px;color:#1a5f7a;font-weight:600;margin:3px 0;">เมื่อสะสม ≥ ' + r.hours + ' ชม. (' + hourtypeLabel + ')</div>'
+          + '<div style="font-size:13px;color:var(--text-muted);">' + r.detail + '</div>'
+          + '</div>'
+          + '<div style="text-align:center;flex-shrink:0;">'
+          + '<div style="font-size:11px;background:#e8f4f8;color:#1a5f7a;padding:3px 10px;border-radius:20px;">' + r.type + '</div>'
+          + '</div>';
+        preview.appendChild(card);
+      });
+    }
+
+    // Table
+    tbody.innerHTML = '';
+    res.data.forEach(function(r) {
+      var tr = document.createElement('tr');
+      var statusPill = r.active === 'TRUE'
+        ? '<span class="status-pill pill-green">เปิดใช้</span>'
+        : '<span class="status-pill pill-red">ปิดใช้</span>';
+
+      var tdAction = document.createElement('td');
+      tdAction.style.cssText = 'display:flex;gap:6px;';
+
+      var btnEdit = document.createElement('button');
+      btnEdit.textContent = 'แก้ไข';
+      btnEdit.style.cssText = 'background:#1a5f7a;color:white;border:none;padding:5px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
+      btnEdit.onclick = (function(rwd){ return function(){ editReward(rwd); }; })(r);
+
+      var btnDel = document.createElement('button');
+      btnDel.textContent = 'ลบ';
+      btnDel.style.cssText = 'background:#e74c3c;color:white;border:none;padding:5px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
+      btnDel.onclick = (function(id){ return function(){ deleteReward(id); }; })(r.id);
+
+      tdAction.appendChild(btnEdit);
+      tdAction.appendChild(btnDel);
+
+      var hourtypeLabel = r.hourtype === 'รวม' ? '📊 รวม' : '✅ ทำกิจกรรม';
+      tr.innerHTML = '<td style="font-size:24px;text-align:center;">' + (r.icon||'🏅') + '</td>'
+        + '<td><strong>' + r.name + '</strong><br><span style="font-size:12px;color:var(--text-muted);">' + r.detail.substring(0,50) + '...</span></td>'
+        + '<td style="text-align:center;font-weight:700;color:#1a5f7a;">≥ ' + r.hours + ' ชม.</td>'
+        + '<td>' + r.type + '</td>'
+        + '<td>' + hourtypeLabel + '</td>'
+        + '<td>' + statusPill + '</td>';
+      tr.appendChild(tdAction);
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function showAddReward() {
+  document.getElementById('rewardFormTitle').textContent = '➕ เพิ่มรางวัลใหม่';
+  document.getElementById('rwd_edit_id').value = '';
+  ['rwd_name','rwd_hours','rwd_icon','rwd_detail'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('rwd_type').value = 'เกียรติบัตร';
+  document.getElementById('rwd_hourtype').value = 'ทำกิจกรรม';
+  document.getElementById('rwd_active').value = 'TRUE';
+  document.getElementById('addRewardError').style.display = 'none';
+  document.getElementById('addRewardForm').style.display = 'block';
+  document.getElementById('addRewardForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function editReward(r) {
+  document.getElementById('rewardFormTitle').textContent = '✏️ แก้ไขรางวัล';
+  document.getElementById('rwd_edit_id').value  = r.id;
+  document.getElementById('rwd_name').value     = r.name    || '';
+  document.getElementById('rwd_hours').value    = r.hours   || '';
+  document.getElementById('rwd_icon').value     = r.icon    || '';
+  document.getElementById('rwd_detail').value   = r.detail  || '';
+  document.getElementById('rwd_type').value     = r.type    || 'เกียรติบัตร';
+  document.getElementById('rwd_hourtype').value = r.hourtype|| 'ทำกิจกรรม';
+  document.getElementById('rwd_active').value   = r.active  || 'TRUE';
+  document.getElementById('addRewardError').style.display = 'none';
+  document.getElementById('addRewardForm').style.display = 'block';
+  document.getElementById('addRewardForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function submitReward() {
+  var err    = document.getElementById('addRewardError');
+  var name   = document.getElementById('rwd_name').value.trim();
+  var hours  = document.getElementById('rwd_hours').value;
+  var icon   = document.getElementById('rwd_icon').value.trim();
+  var detail = document.getElementById('rwd_detail').value.trim();
+  var type   = document.getElementById('rwd_type').value;
+  var htype  = document.getElementById('rwd_hourtype').value;
+  var active = document.getElementById('rwd_active').value;
+  var editId = document.getElementById('rwd_edit_id').value;
+
+  if (!name)   { err.textContent='กรุณาใส่ชื่อรางวัล';         err.style.display='block'; return; }
+  if (!hours || hours < 1) { err.textContent='กรุณาระบุชั่วโมงขั้นต่ำ'; err.style.display='block'; return; }
+  if (!detail) { err.textContent='กรุณาใส่รายละเอียดรางวัล';   err.style.display='block'; return; }
+  err.style.display = 'none';
+
+  var action = editId ? 'updateReward' : 'addReward';
+  callAPI(action, { id:editId, name:name, hours:hours, icon:icon||'🏅', detail:detail, type:type, hourtype:htype, active:active })
+    .then(function(res) {
+      if (res.success) {
+        document.getElementById('addRewardForm').style.display = 'none';
+        showToast(editId ? '✅ แก้ไขรางวัลสำเร็จ' : '✅ เพิ่มรางวัลสำเร็จ');
+        loadRewards();
+      } else {
+        err.textContent = res.message;
+        err.style.display = 'block';
+      }
+    });
+}
+
+function deleteReward(id) {
+  if (!confirm('ลบรางวัลนี้?')) return;
+  callAPI('deleteReward', { id: id }).then(function(res) {
+    if (res.success) { showToast('ลบรางวัลสำเร็จ'); loadRewards(); }
+    else alert(res.message);
+  });
+}
+
+
+// ── Search ─────────────────────────────────────────────────
+function toggleSearch() {
+  var overlay = document.getElementById('searchOverlay');
+  var isOpen  = overlay.style.display === 'flex';
+  overlay.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) {
+    var inp = document.getElementById('searchInput');
+    inp.value = '';
+    document.getElementById('searchResults').innerHTML = '';
+    document.getElementById('searchEmpty').style.display = 'none';
+    document.getElementById('searchHint').style.display = 'block';
+    setTimeout(function(){ inp.focus(); }, 100);
+  }
+}
+
+function doSearch(query) {
+  var q = query.trim().toLowerCase();
+  var results = document.getElementById('searchResults');
+  var empty   = document.getElementById('searchEmpty');
+  var hint    = document.getElementById('searchHint');
+
+  if (q.length < 2) {
+    results.innerHTML = '';
+    empty.style.display = 'none';
+    hint.style.display = 'block';
+    return;
+  }
+  hint.style.display = 'none';
+
+  var items = [];
+
+  // Search activities
+  allActivities.forEach(function(a) {
+    if (a.name.toLowerCase().indexOf(q) !== -1 ||
+        a.type.toLowerCase().indexOf(q) !== -1 ||
+        (a.organizer||'').toLowerCase().indexOf(q) !== -1 ||
+        (a.detail||'').toLowerCase().indexOf(q) !== -1) {
+      items.push({
+        icon: '📋', title: a.name,
+        sub:  a.type + ' · ' + a.organizer + ' · ' + a.date,
+        action: function(){ toggleSearch(); showPage('activities'); }
+      });
+    }
+  });
+
+  // Search nav pages
+  var pages = [
+    { kw: ['หน้าแรก','home'],           icon:'🏠', title:'หน้าแรก',            page:'home' },
+    { kw: ['กิจกรรม','activity'],        icon:'📋', title:'กิจกรรมทั้งหมด',     page:'activities' },
+    { kw: ['ฝากเวลา','เวลา','volunteer'],icon:'⏰', title:'ฝากเวลาจิตอาสา',    page:'register-time' },
+    { kw: ['ประวัติ','history'],         icon:'📂', title:'แฟ้มประวัติ',         page:'history' },
+    { kw: ['รายงาน','report','สถิติ'],   icon:'📊', title:'รายงาน',             page:'report' },
+    { kw: ['โปรไฟล์','profile','ข้อมูลฉัน'],icon:'👤',title:'โปรไฟล์',          page:'profile' },
+    { kw: ['สมัคร','ลงทะเบียน','signup'],icon:'✨', title:'สมัครสมาชิก',        action:'signup' },
+    { kw: ['login','เข้าสู่ระบบ'],       icon:'🔐', title:'เข้าสู่ระบบ',         action:'login' },
+    { kw: ['ติดต่อ','contact','footer','8200','8201','8202','ฝ่ายพัฒนา'],icon:'📞',title:'ติดต่อสอบถาม',action:'footer' },
+  ];
+
+  pages.forEach(function(p) {
+    var matched = p.kw.some(function(k){ return k.indexOf(q) !== -1 || q.indexOf(k) !== -1; });
+    if (matched) {
+      items.push({
+        icon: p.icon, title: p.title, sub: 'หน้า ' + (p.page||p.action||''),
+        action: (function(pp){
+          return function() {
+            toggleSearch();
+            if (pp.page)   showPage(pp.page);
+            else if (pp.action === 'signup') openModal('userSignupModal');
+            else if (pp.action === 'login')  openModal('userLoginModal');
+            else if (pp.action === 'footer') window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+          };
+        })(p)
+      });
+    }
+  });
+
+  results.innerHTML = '';
+  if (!items.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  items.slice(0, 8).forEach(function(item) {
+    var el = document.createElement('div');
+    el.style.cssText = 'background:white;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:background .15s;';
+    el.onmouseover = function(){ this.style.background='#f0f4f8'; };
+    el.onmouseout  = function(){ this.style.background='white'; };
+    el.onclick     = item.action;
+
+    var icon = document.createElement('div');
+    icon.style.cssText = 'font-size:24px;flex-shrink:0;';
+    icon.textContent = item.icon;
+
+    var body = document.createElement('div');
+    var title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;font-size:14px;color:#0d3d52;';
+    title.textContent = item.title;
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size:12px;color:#6b7c93;margin-top:2px;';
+    sub.textContent = item.sub || '';
+
+    body.appendChild(title);
+    body.appendChild(sub);
+    el.appendChild(icon);
+    el.appendChild(body);
+    results.appendChild(el);
+  });
+}
+
+// Close search on outside click
+document.addEventListener('click', function(e) {
+  var overlay = document.getElementById('searchOverlay');
+  if (overlay && overlay.style.display === 'flex' && e.target === overlay) {
+    toggleSearch();
+  }
+});
+
+// ── Feedback ───────────────────────────────────────────────
+function showFeedbackForm() {
+  document.getElementById('fb_detail').value  = '';
+  document.getElementById('fb_contact').value = '';
+  document.getElementById('feedbackError').style.display = 'none';
+  openModal('feedbackModal');
+}
+
+function submitFeedback() {
+  var err    = document.getElementById('feedbackError');
+  var type   = document.getElementById('fb_type').value;
+  var detail = document.getElementById('fb_detail').value.trim();
+  var contact= document.getElementById('fb_contact').value.trim();
+
+  if (!detail) {
+    err.textContent = 'กรุณาใส่รายละเอียด';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+
+  callAPI('addFeedback', { type:type, detail:detail, contact:contact })
+    .then(function(res) {
+      closeModal('feedbackModal');
+      showToast('✅ ขอบคุณสำหรับข้อเสนอแนะครับ');
+    });
 }
 
 // ── Init ───────────────────────────────────────────────────

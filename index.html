@@ -333,6 +333,9 @@
 
 /* ── Responsive Mobile ─────────────────────────────────── */
 @media (max-width: 640px) {
+  footer > div > div:first-of-type { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 640px) {
 
   /* Header & Nav */
   header { padding: 0 12px; }
@@ -553,6 +556,23 @@
   </div>
 </div>
 
+<!-- SEARCH OVERLAY -->
+<div id="searchOverlay" style="display:none;position:fixed;inset:0;background:rgba(13,61,82,.92);z-index:9998;padding:80px 20px 20px;backdrop-filter:blur(8px);">
+  <div style="max-width:680px;margin:0 auto;">
+    <div style="position:relative;margin-bottom:24px;">
+      <input id="searchInput" type="text" placeholder="ค้นหากิจกรรม ประกาศ หรือข้อมูลในระบบ..."
+        oninput="doSearch(this.value)"
+        onkeydown="if(event.key==='Escape')toggleSearch()"
+        style="width:100%;padding:18px 56px 18px 20px;border-radius:14px;border:none;font-family:Sarabun,sans-serif;font-size:16px;outline:none;box-sizing:border-box;box-shadow:0 8px 32px rgba(0,0,0,.3);">
+      <button onclick="toggleSearch()"
+        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:20px;cursor:pointer;color:#6b7c93;">✕</button>
+    </div>
+    <div id="searchResults" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+    <div id="searchEmpty" style="display:none;text-align:center;color:rgba(255,255,255,.5);padding:40px;font-size:15px;">ไม่พบผลลัพธ์</div>
+    <div id="searchHint" style="text-align:center;color:rgba(255,255,255,.4);font-size:13px;margin-top:16px;">กด ESC เพื่อปิด</div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <header>
   <div class="header-inner">
@@ -588,6 +608,10 @@
           ออก
         </button>
       </div>
+      <button onclick="toggleSearch()" id="btn-search" title="ค้นหา"
+        style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;margin-left:4px;">
+        🔍
+      </button>
       <button onclick="showAdminLogin()" id="nav-admin" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-family:Sarabun,sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;margin-left:4px;">
         🔐 Admin
       </button>
@@ -610,7 +634,14 @@
       </div>
       <div class="hero-stats">
         <div class="stat-card"><div class="num" id="statTotal">-</div><div class="lbl">จิตอาสาทั้งหมด</div></div>
-        <div class="stat-card"><div class="num" id="statHours">-</div><div class="lbl">ชั่วโมงรวม</div></div>
+        <div class="stat-card" style="border:1.5px solid rgba(232,168,56,.5);">
+          <div class="num" id="statHoursDone" style="color:#e8a838;">-</div>
+          <div class="lbl">ชม. ทำกิจกรรม ✅</div>
+        </div>
+        <div class="stat-card" style="border:1.5px solid rgba(255,255,255,.2);">
+          <div class="num" id="statHoursPledge" style="color:#a8d8ea;">-</div>
+          <div class="lbl">ชม. ฝากเวลา 💡</div>
+        </div>
         <div class="stat-card"><div class="num" id="statActs">-</div><div class="lbl">กิจกรรมปีนี้</div></div>
       </div>
     </div>
@@ -1099,6 +1130,7 @@
     <button class="tab-btn" onclick="switchTab(this,'admin-report')">📊 รายงาน</button>
     <button class="tab-btn" id="tab-manage-admins" style="display:none;" onclick="switchTab(this,'admin-manage')">⚙️ จัดการ Admin</button>
     <button class="tab-btn" onclick="switchTab(this,'admin-announce')">📢 ประกาศ</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-rewards')">🏅 รางวัล</button>
   </div>
   <div id="admin-approve">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -1204,6 +1236,69 @@
     </div>
   </div>
 
+  <!-- รางวัล -->
+  <div id="admin-rewards" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">🏅 กำหนดรางวัลการสะสมชั่วโมง</div>
+      <button onclick="showAddReward()" style="background:#1a5f7a;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">➕ เพิ่มรางวัล</button>
+    </div>
+
+    <!-- Info -->
+    <div class="alert alert-info" style="margin-bottom:20px;">
+      <span>ℹ️</span>
+      <div>กำหนดรางวัลที่จิตอาสาจะได้รับเมื่อสะสมชั่วโมงครบตามเกณฑ์ เรียงตามจำนวนชั่วโมงน้อยไปมาก</div>
+    </div>
+
+    <!-- Add/Edit Form -->
+    <div id="addRewardForm" style="display:none;background:white;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(26,95,122,.1);margin-bottom:24px;border:2px solid #e8f4f8;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:18px;color:#0d3d52;" id="rewardFormTitle">➕ เพิ่มรางวัลใหม่</div>
+      <input type="hidden" id="rwd_edit_id" value="">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชื่อรางวัล *</label>
+          <input id="rwd_name" type="text" placeholder="เช่น เกียรติบัตรระดับเงิน" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชั่วโมงขั้นต่ำ *</label>
+          <input id="rwd_hours" type="number" min="1" placeholder="เช่น 24" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ไอคอน (Emoji)</label>
+          <input id="rwd_icon" type="text" placeholder="เช่น 🥈" maxlength="4" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:20px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ประเภทรางวัล</label>
+          <select id="rwd_type" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+            <option value="เกียรติบัตร">🎖️ เกียรติบัตร</option>
+            <option value="ของรางวัล">🎁 ของรางวัล</option>
+            <option value="สิทธิพิเศษ">⭐ สิทธิพิเศษ</option>
+            <option value="คะแนน">🏆 คะแนน/ตำแหน่ง</option>
+          </select></div>
+        <div style="grid-column:1/-1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">รายละเอียดรางวัล *</label>
+          <textarea id="rwd_detail" rows="3" placeholder="อธิบายรางวัลที่จะได้รับ..." style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;"></textarea></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">นับจากชั่วโมงประเภทใด</label>
+          <select id="rwd_hourtype" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+            <option value="ทำกิจกรรม">✅ ชม. ทำกิจกรรม</option>
+            <option value="รวม">📊 ชม. รวมทั้งหมด</option>
+          </select></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">สถานะ</label>
+          <select id="rwd_active" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+            <option value="TRUE">✅ เปิดใช้งาน</option>
+            <option value="FALSE">❌ ปิดใช้งาน</option>
+          </select></div>
+      </div>
+      <div id="addRewardError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-top:12px;"></div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button onclick="submitReward()" style="background:#1a5f7a;color:white;border:none;padding:11px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;font-weight:600;cursor:pointer;">💾 บันทึก</button>
+        <button onclick="document.getElementById('addRewardForm').style.display='none'" style="background:#ecf0f1;color:#1a2332;border:none;padding:11px 20px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+
+    <!-- Rewards Preview -->
+    <div id="rewardsPreview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;"></div>
+
+    <!-- Rewards Table -->
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ไอคอน</th><th>ชื่อรางวัล</th><th>ชั่วโมง</th><th>ประเภท</th><th>นับจาก</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody id="rewardsTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7c93;">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ประกาศ -->
   <div id="admin-announce" style="display:none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -1250,5 +1345,72 @@
 
 
 <script src="app.js"></script>
+
+<!-- FOOTER -->
+<footer style="background:linear-gradient(135deg,#0d3d52,#1a5f7a);color:white;padding:40px 24px 24px;margin-top:48px;">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;margin-bottom:32px;">
+
+      <!-- Col 1: About -->
+      <div>
+        <div style="font-family:Prompt,sans-serif;font-weight:700;font-size:16px;margin-bottom:12px;">🌿 CRA Volunteer Bank</div>
+        <div style="font-size:13px;opacity:.8;line-height:1.8;">ธนาคารจิตอาสา ราชวิทยาลัยจุฬาภรณ์<br>สะสมเวลาจิตอาสา สร้างคุณค่าให้สังคม</div>
+      </div>
+
+      <!-- Col 2: Contact -->
+      <div>
+        <div style="font-family:Prompt,sans-serif;font-weight:700;font-size:15px;margin-bottom:12px;">📞 ติดต่อสอบถาม</div>
+        <div style="font-size:13px;opacity:.85;line-height:2;">
+          <div>🏢 ฝ่ายพัฒนาเพื่อความยั่งยืน</div>
+          <div>📍 สำนักงานราชวิทยาลัยจุฬาภรณ์</div>
+          <div>☎️ เบอร์ภายใน <strong style="color:#e8a838;">8200 – 8202</strong></div>
+        </div>
+      </div>
+
+      <!-- Col 3: Feedback -->
+      <div>
+        <div style="font-family:Prompt,sans-serif;font-weight:700;font-size:15px;margin-bottom:12px;">💬 เสนอแนะข้อคิดเห็น</div>
+        <div style="font-size:13px;opacity:.8;margin-bottom:14px;line-height:1.7;">หากพบปัญหาหรือมีข้อเสนอแนะ กรุณาติดต่อผู้ดูแลระบบ หรือกรอกแบบฟอร์มด้านล่าง</div>
+        <button onclick="showFeedbackForm()"
+          style="background:#e8a838;color:#0d3d52;border:none;padding:9px 20px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+          📝 ส่งข้อเสนอแนะ
+        </button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid rgba(255,255,255,.15);padding-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:12px;opacity:.5;">© 2568 ราชวิทยาลัยจุฬาภรณ์ · CRA Volunteer Bank · พัฒนาโดยฝ่ายพัฒนาเพื่อความยั่งยืน</div>
+      <div style="font-size:12px;opacity:.5;">เวอร์ชัน 1.0</div>
+    </div>
+  </div>
+</footer>
+
+<!-- FEEDBACK MODAL -->
+<div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:9999;padding:20px;">
+  <div style="background:white;border-radius:20px;padding:36px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
+    <div style="text-align:center;margin-bottom:20px;"><div style="font-size:40px;">💬</div><h2 style="font-family:Prompt,sans-serif;font-size:20px;color:#0d3d52;margin-top:8px;">ส่งข้อเสนอแนะ</h2></div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ประเภท</label>
+        <select id="fb_type" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+          <option>🐛 แจ้งปัญหา/Bug</option>
+          <option>💡 ข้อเสนอแนะ</option>
+          <option>❓ ขอข้อมูลเพิ่มเติม</option>
+          <option>👍 ชมเชย</option>
+        </select></div>
+      <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">รายละเอียด *</label>
+        <textarea id="fb_detail" rows="4" placeholder="อธิบายปัญหาหรือข้อเสนอแนะของท่าน..."
+          style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;"></textarea></div>
+      <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชื่อ-อีเมล (ไม่บังคับ)</label>
+        <input id="fb_contact" type="text" placeholder="เช่น สมชาย / somchai@cra.ac.th"
+          style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+    </div>
+    <div id="feedbackError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-top:12px;"></div>
+    <div style="display:flex;gap:12px;margin-top:16px;">
+      <button onclick="submitFeedback()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#1a5f7a;color:white;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">📤 ส่งข้อเสนอแนะ</button>
+      <button onclick="closeModal('feedbackModal')" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
