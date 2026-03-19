@@ -504,84 +504,34 @@
         </div>
       </div>
       <div class="hero-stats">
-        <div class="stat-card"><div class="num">1,284</div><div class="lbl">จิตอาสาทั้งหมด</div></div>
-        <div class="stat-card"><div class="num">8,652</div><div class="lbl">ชั่วโมงรวม</div></div>
-        <div class="stat-card"><div class="num">47</div><div class="lbl">กิจกรรมปีนี้</div></div>
+        <div class="stat-card"><div class="num" id="statTotal">-</div><div class="lbl">จิตอาสาทั้งหมด</div></div>
+        <div class="stat-card"><div class="num" id="statHours">-</div><div class="lbl">ชั่วโมงรวม</div></div>
+        <div class="stat-card"><div class="num" id="statActs">-</div><div class="lbl">กิจกรรมปีนี้</div></div>
       </div>
     </div>
 
     <div class="stats-row">
       <div class="stat-box">
         <div class="icon" style="background:#edf6ff;">👥</div>
-        <div class="info"><div class="num" style="color:var(--primary)">842</div><div class="lbl">บุคลากรจิตอาสา</div></div>
+        <div class="info"><div class="num" style="color:var(--primary)" id="statStaff">-</div><div class="lbl">บุคลากรจิตอาสา</div></div>
       </div>
       <div class="stat-box">
         <div class="icon" style="background:#f0fef5;">🎓</div>
-        <div class="info"><div class="num" style="color:var(--green)">442</div><div class="lbl">นักศึกษาจิตอาสา</div></div>
+        <div class="info"><div class="num" style="color:var(--green)" id="statStudent">-</div><div class="lbl">นักศึกษาจิตอาสา</div></div>
       </div>
       <div class="stat-box">
         <div class="icon" style="background:#fffbea;">⏱️</div>
-        <div class="info"><div class="num" style="color:var(--accent)">8,652</div><div class="lbl">ชั่วโมงสะสม</div></div>
+        <div class="info"><div class="num" style="color:var(--accent)" id="statHoursAll">-</div><div class="lbl">ชั่วโมงสะสม</div></div>
       </div>
       <div class="stat-box">
-        <div class="icon" style="background:#fef3f2;">🏆</div>
-        <div class="info"><div class="num" style="color:var(--red)">156</div><div class="lbl">เกียรติบัตรออก</div></div>
+        <div class="icon" style="background:#fef5f5;">🏆</div>
+        <div class="info"><div class="num" style="color:var(--red)" id="statCerts">-</div><div class="lbl">เกียรติบัตรออก</div></div>
       </div>
     </div>
 
     <div class="section-title">🎯 กิจกรรมล่าสุด</div>
-    <div class="cards-grid">
-      <div class="activity-card" onclick="showPage('activities')">
-        <div class="card-img" style="background:linear-gradient(135deg,#d4f4e1,#a8e6cf)">
-          🌳<span class="card-badge">เปิดรับ</span>
-        </div>
-        <div class="card-body">
-          <h3>ปลูกป่าชายเลน ปี 2568</h3>
-          <p>ร่วมกันปลูกต้นไม้เพื่ออนุรักษ์สิ่งแวดล้อมชายฝั่ง จ.สมุทรสาคร</p>
-          <div class="card-meta">
-            <span>📅 15 ก.พ. 68</span>
-            <span>⏱️ 8 ชม.</span>
-            <span>👥 48/60 คน</span>
-          </div>
-          <div style="margin-top:10px;">
-            <span class="tag" style="background:#d4f4e1;color:#1a7a42">🌱 สิ่งแวดล้อม</span>
-          </div>
-        </div>
-      </div>
-      <div class="activity-card" onclick="showPage('activities')">
-        <div class="card-img" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)">
-          ❤️‍🩹<span class="card-badge">เปิดรับ</span>
-        </div>
-        <div class="card-body">
-          <h3>บริการตรวจสุขภาพฟรี</h3>
-          <p>ให้บริการตรวจสุขภาพเบื้องต้นแก่ชุมชน โดยนักศึกษาพยาบาล</p>
-          <div class="card-meta">
-            <span>📅 22 ก.พ. 68</span>
-            <span>⏱️ 6 ชม.</span>
-            <span>👥 32/40 คน</span>
-          </div>
-          <div style="margin-top:10px;">
-            <span class="tag" style="background:#ffecd2;color:#9a4200">🏥 บริการสุขภาพ</span>
-          </div>
-        </div>
-      </div>
-      <div class="activity-card" onclick="showPage('activities')">
-        <div class="card-img" style="background:linear-gradient(135deg,#e8d8f0,#c3aae0)">
-          📚<span class="card-badge" style="background:var(--accent);color:var(--primary-dark)">ใหม่!</span>
-        </div>
-        <div class="card-body">
-          <h3>สอนหนังสือน้องๆ ชุมชน</h3>
-          <p>อาสาสมัครสอนวิชาการแก่นักเรียนยากไร้ในชุมชนใกล้เคียง</p>
-          <div class="card-meta">
-            <span>📅 1 มี.ค. 68</span>
-            <span>⏱️ 4 ชม.</span>
-            <span>👥 12/30 คน</span>
-          </div>
-          <div style="margin-top:10px;">
-            <span class="tag" style="background:#e8d8f0;color:#5a2d8a">📖 สอนหนังสือ</span>
-          </div>
-        </div>
-      </div>
+    <div class="cards-grid" id="homeActivityCards">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">กำลังโหลดกิจกรรม...</div>
     </div>
 
     <div class="section-title">📢 ประกาศ / ข่าวสาร</div>
@@ -636,68 +586,7 @@
             <th>จัดการ</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td><strong>ปลูกป่าชายเลน ปี 2568</strong></td>
-            <td><span class="tag" style="background:#d4f4e1;color:#1a7a42;">สิ่งแวดล้อม</span></td>
-            <td>15 ก.พ. 68</td>
-            <td>8 ชม.</td>
-            <td>กองกิจการนักศึกษา</td>
-            <td>48/60</td>
-            <td><span class="status-pill pill-green">เปิดรับ</span></td>
-            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
-          </tr>
-          <tr>
-            <td><strong>บริการตรวจสุขภาพฟรี</strong></td>
-            <td><span class="tag" style="background:#ffecd2;color:#9a4200;">สุขภาพ</span></td>
-            <td>22 ก.พ. 68</td>
-            <td>6 ชม.</td>
-            <td>คณะพยาบาลศาสตร์</td>
-            <td>32/40</td>
-            <td><span class="status-pill pill-green">เปิดรับ</span></td>
-            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
-          </tr>
-          <tr>
-            <td><strong>สอนหนังสือน้องๆ ชุมชน</strong></td>
-            <td><span class="tag" style="background:#e8d8f0;color:#5a2d8a;">สอนหนังสือ</span></td>
-            <td>1 มี.ค. 68</td>
-            <td>4 ชม.</td>
-            <td>คณะครุศาสตร์</td>
-            <td>12/30</td>
-            <td><span class="status-pill pill-green">เปิดรับ</span></td>
-            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
-          </tr>
-          <tr>
-            <td><strong>งานช่างซ่อมบ้านชุมชน</strong></td>
-            <td><span class="tag" style="background:#d6eeff;color:#0d5a9a;">งานช่าง</span></td>
-            <td>8 มี.ค. 68</td>
-            <td>8 ชม.</td>
-            <td>คณะวิศวกรรมศาสตร์</td>
-            <td>20/25</td>
-            <td><span class="status-pill pill-orange">ใกล้เต็ม</span></td>
-            <td><button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="showPage('register-time')">สมัคร</button></td>
-          </tr>
-          <tr>
-            <td><strong>ค่ายอาสาพัฒนาโรงเรียน</strong></td>
-            <td><span class="tag" style="background:#ffecd2;color:#9a4200;">ด้านรับ</span></td>
-            <td>20 ม.ค. 68</td>
-            <td>16 ชม.</td>
-            <td>สภานักศึกษา</td>
-            <td>60/60</td>
-            <td><span class="status-pill pill-red">ปิดรับ</span></td>
-            <td><button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>เต็มแล้ว</button></td>
-          </tr>
-          <tr>
-            <td><strong>เล่านิทานให้น้องฟัง</strong></td>
-            <td><span class="tag" style="background:#e8d8f0;color:#5a2d8a;">เล่านิทาน</span></td>
-            <td>10 ม.ค. 68</td>
-            <td>3 ชม.</td>
-            <td>คณะมนุษยศาสตร์</td>
-            <td>25/25</td>
-            <td><span class="status-pill pill-blue">เสร็จสิ้น</span></td>
-            <td><button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>จบแล้ว</button></td>
-          </tr>
-        </tbody>
+        <tbody id="activitiesTable"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -745,13 +634,7 @@
           </div>
           <div class="form-group full">
             <label>กิจกรรมที่ต้องการสมัคร <span class="req">*</span></label>
-            <select>
-              <option>-- เลือกกิจกรรม --</option>
-              <option>ปลูกป่าชายเลน ปี 2568 (15 ก.พ. 68)</option>
-              <option>บริการตรวจสุขภาพฟรี (22 ก.พ. 68)</option>
-              <option>สอนหนังสือน้องๆ ชุมชน (1 มี.ค. 68)</option>
-              <option>งานช่างซ่อมบ้านชุมชน (8 มี.ค. 68)</option>
-            </select>
+            <select id="activitySelect" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;"><option value="">-- เลือกกิจกรรม (โหลดจากระบบ) --</option></select>
           </div>
           <div class="form-group">
             <label>ประเภทกิจกรรม <span class="req">*</span></label>
@@ -799,10 +682,7 @@
           </div>
           <div class="form-group full">
             <label>กิจกรรมที่เข้าร่วม <span class="req">*</span></label>
-            <select>
-              <option>-- เลือกกิจกรรมที่สมัครไว้ --</option>
-              <option>ปลูกป่าชายเลน ปี 2568 (15 ก.พ. 68)</option>
-            </select>
+            <select id="activitySelect2" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;"><option value="">-- เลือกกิจกรรม --</option></select>
           </div>
           <div class="form-group">
             <label>วันที่ทำกิจกรรม <span class="req">*</span></label>
@@ -886,52 +766,7 @@
         </div>
 
         <div id="hist-a">
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot done"></div>
-              <div class="timeline-date">15 กุมภาพันธ์ 2568</div>
-              <div class="timeline-content">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                  <h4>ปลูกป่าชายเลน ปี 2568</h4>
-                  <span class="status-pill pill-green">อนุมัติ</span>
-                </div>
-                <p>หน่วยงาน: กองกิจการนักศึกษา | ประเภท: สิ่งแวดล้อม</p>
-                <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--text-muted);">
-                  <span>⏱️ 8 ชั่วโมง</span>
-                  <span>✅ ผ่านการตรวจสอบ</span>
-                </div>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot done"></div>
-              <div class="timeline-date">10 มกราคม 2568</div>
-              <div class="timeline-content">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                  <h4>เล่านิทานให้น้องฟัง</h4>
-                  <span class="status-pill pill-green">อนุมัติ</span>
-                </div>
-                <p>หน่วยงาน: คณะมนุษยศาสตร์ | ประเภท: เล่านิทาน</p>
-                <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--text-muted);">
-                  <span>⏱️ 3 ชั่วโมง</span>
-                  <span>✅ ผ่านการตรวจสอบ</span>
-                </div>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-date">1 มีนาคม 2568</div>
-              <div class="timeline-content">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                  <h4>สอนหนังสือน้องๆ ชุมชน</h4>
-                  <span class="status-pill pill-orange">รอการอนุมัติ</span>
-                </div>
-                <p>หน่วยงาน: คณะครุศาสตร์ | ประเภท: สอนหนังสือ</p>
-                <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--text-muted);">
-                  <span>⏱️ 4 ชั่วโมง (รอยืนยัน)</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="timeline" id="historyTimeline"><div style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีประวัติการทำกิจกรรม</div></div>
         </div>
 
         <div id="hist-b" style="display:none;">
@@ -940,11 +775,7 @@
               <thead>
                 <tr><th>วันที่ฝาก</th><th>กิจกรรม</th><th>ชั่วโมง</th><th>สะสมรวม</th><th>สถานะ</th></tr>
               </thead>
-              <tbody>
-                <tr><td>15 ก.พ. 68</td><td>ปลูกป่าชายเลน</td><td>8 ชม.</td><td>24 ชม.</td><td><span class="status-pill pill-green">อนุมัติ</span></td></tr>
-                <tr><td>10 ม.ค. 68</td><td>เล่านิทานให้น้องฟัง</td><td>3 ชม.</td><td>16 ชม.</td><td><span class="status-pill pill-green">อนุมัติ</span></td></tr>
-                <tr><td>1 มี.ค. 68</td><td>สอนหนังสือน้องๆ</td><td>4 ชม.</td><td>-</td><td><span class="status-pill pill-orange">รอยืนยัน</span></td></tr>
-              </tbody>
+              <tbody id="historyTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">ยังไม่มีประวัติ</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -970,19 +801,19 @@
       <div class="stats-row" style="margin-bottom:24px;">
         <div class="stat-box">
           <div class="icon" style="background:#edf6ff;">📋</div>
-          <div class="info"><div class="num" style="color:var(--primary)">47</div><div class="lbl">กิจกรรมทั้งหมด</div></div>
+          <div class="info"><div class="num" style="color:var(--primary)" id="statActs2">-</div><div class="lbl">กิจกรรมทั้งหมด</div></div>
         </div>
         <div class="stat-box">
           <div class="icon" style="background:#f0fef5;">⏱️</div>
-          <div class="info"><div class="num" style="color:var(--green)">8,652</div><div class="lbl">ชั่วโมงรวม</div></div>
+          <div class="info"><div class="num" style="color:var(--green)" id="statHoursAll2">-</div><div class="lbl">ชั่วโมงรวม</div></div>
         </div>
         <div class="stat-box">
           <div class="icon" style="background:#fffbea;">👥</div>
-          <div class="info"><div class="num" style="color:var(--accent)">1,284</div><div class="lbl">จิตอาสา</div></div>
+          <div class="info"><div class="num" style="color:var(--accent)" id="statTotal2">-</div><div class="lbl">จิตอาสา</div></div>
         </div>
         <div class="stat-box">
           <div class="icon" style="background:#fef3f2;">🏆</div>
-          <div class="info"><div class="num" style="color:var(--red)">156</div><div class="lbl">เกียรติบัตร</div></div>
+          <div class="info"><div class="num" style="color:var(--red)" id="statCerts2">-</div><div class="lbl">เกียรติบัตร</div></div>
         </div>
       </div>
 
@@ -1149,11 +980,12 @@
     <button onclick="adminLogout()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:8px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">ออกจากระบบ</button>
   </div>
   <div class="tabs" style="margin-bottom:24px;">
-    <button class="tab-btn active" onclick="switchTab(this,'admin-approve')">อนุมัติเวลา</button>
-    <button class="tab-btn" onclick="switchTab(this,'admin-activities')">จัดการกิจกรรม</button>
-    <button class="tab-btn" onclick="switchTab(this,'admin-members')">ผู้สมัคร</button>
-    <button class="tab-btn" onclick="switchTab(this,'admin-cert')">เกียรติบัตร</button>
-    <button class="tab-btn" onclick="switchTab(this,'admin-report')">รายงาน</button>
+    <button class="tab-btn active" onclick="switchTab(this,'admin-approve')">✅ อนุมัติเวลา</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-activities')">📋 จัดการกิจกรรม</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-members')">👥 ผู้สมัคร</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-cert')">🏆 เกียรติบัตร</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-report')">📊 รายงาน</button>
+    <button class="tab-btn" id="tab-manage-admins" style="display:none;" onclick="switchTab(this,'admin-manage')">⚙️ จัดการ Admin</button>
   </div>
   <div id="admin-approve">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -1212,6 +1044,43 @@
     </div>
     <button onclick="loadAdminReport()" style="background:#1a5f7a;color:white;border:none;padding:11px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">โหลดรายงาน</button>
   </div>
+
+  <!-- จัดการ Admin — เฉพาะ Super Admin -->
+  <div id="admin-manage" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">⚙️ จัดการ Admin</div>
+      <button onclick="showAddAdminForm()" style="background:#1a5f7a;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">➕ เพิ่ม Admin</button>
+    </div>
+
+    <!-- Add Admin Form -->
+    <div id="addAdminForm" style="display:none;background:white;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(26,95,122,.1);margin-bottom:24px;border:2px solid #e8f4f8;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:18px;color:#0d3d52;">➕ เพิ่ม Admin ใหม่</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">Username *</label><input id="new_admin_user" type="text" placeholder="เช่น nursing2" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">Password *</label><input id="new_admin_pass" type="text" placeholder="ตั้งรหัสผ่าน" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชื่อแสดง *</label><input id="new_admin_name" type="text" placeholder="เช่น คณะพยาบาลศาสตร์ 2" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">โครงการที่ดูแล *</label><input id="new_admin_project" type="text" placeholder="เช่น คณะพยาบาลศาสตร์ หรือ ALL" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      </div>
+      <div id="addAdminError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-top:12px;"></div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button onclick="submitAddAdmin()" style="background:#1a5f7a;color:white;border:none;padding:11px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;font-weight:600;cursor:pointer;">💾 บันทึก Admin</button>
+        <button onclick="document.getElementById('addAdminForm').style.display='none'" style="background:#ecf0f1;color:#1a2332;border:none;padding:11px 20px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+
+    <!-- Admin List Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Username</th><th>ชื่อแสดง</th><th>โครงการ</th><th>สถานะ</th><th>จัดการ</th></tr>
+        </thead>
+        <tbody id="adminListTable">
+          <tr><td colspan="5" style="text-align:center;padding:24px;color:#6b7c93;">กำลังโหลด...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 

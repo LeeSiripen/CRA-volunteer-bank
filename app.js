@@ -49,6 +49,7 @@ function showPage(id) {
   if (id === 'history' && currentUser) loadHistory(currentUser.code);
   if (id === 'report') loadSummary();
   if (id === 'admin') { loadPendingLogs(); loadAdminActivities(); loadAdminReport(); }
+  if (id === 'admin' && currentAdmin && currentAdmin.isSuperAdmin) { loadAdminList(); }
 }
 
 function switchTab(btn, targetId) {
@@ -58,6 +59,7 @@ function switchTab(btn, targetId) {
   var el = tabs.nextElementSibling;
   while (el) { if (el.id) el.style.display = 'none'; el = el.nextElementSibling; }
   document.getElementById(targetId).style.display = 'block';
+  if (targetId === 'admin-manage') loadAdminList();
 }
 
 function showToast(msg) {
@@ -152,16 +154,38 @@ function doAdminLogin() {
   var user = document.getElementById('adminUser').value.trim().toLowerCase();
   var pass = document.getElementById('adminPass').value;
   var err  = document.getElementById('adminLoginError');
-  var acc  = ADMIN_ACCOUNTS[user];
+  err.style.display = 'none';
+
+  // First check local hardcoded (super admin only)
+  var acc = ADMIN_ACCOUNTS[user];
   if (acc && acc.pass === pass) {
-    currentAdmin = { username: user, name: acc.name, project: acc.project };
+    currentAdmin = { username: user, name: acc.name, project: acc.project, isSuperAdmin: true };
     closeModal('adminLoginModal');
-    var suffix = acc.project !== 'ALL' ? ' | โครงการ: ' + acc.project : ' | ดูแลทุกโครงการ';
-    document.getElementById('adminWelcome').textContent = 'ยินดีต้อนรับ ' + acc.name + suffix;
-    showPage('admin');
-  } else {
-    err.style.display = 'block';
+    _afterAdminLogin();
+    return;
   }
+
+  // Then check Google Sheets Admins
+  callAPI('loginAdmin', { username: user, password: pass }).then(function(res) {
+    if (res.success) {
+      currentAdmin = { username: user, name: res.data.name, project: res.data.project, isSuperAdmin: false };
+      closeModal('adminLoginModal');
+      _afterAdminLogin();
+    } else {
+      err.style.display = 'block';
+    }
+  });
+}
+
+function _afterAdminLogin() {
+  var suffix = currentAdmin.project !== 'ALL' ? ' | โครงการ: ' + currentAdmin.project : ' | ดูแลทุกโครงการ';
+  document.getElementById('adminWelcome').textContent = 'ยินดีต้อนรับ ' + currentAdmin.name + suffix;
+
+  // Show "จัดการ Admin" tab only for Super Admin
+  var manageTab = document.getElementById('tab-manage-admins');
+  if (manageTab) manageTab.style.display = currentAdmin.isSuperAdmin ? 'inline-flex' : 'none';
+
+  showPage('admin');
 }
 function adminLogout() { currentAdmin = null; showPage('home'); }
 
@@ -169,23 +193,70 @@ function adminLogout() { currentAdmin = null; showPage('home'); }
 function loadActivities() {
   callAPI('getActivities').then(function(res) {
     if (!res.success) return;
+
+    // Fill activities table (หน้ากิจกรรม)
     var tbody = document.querySelector('#activitiesTable tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    res.data.forEach(function(a) {
-      var sc  = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
-      var btn = a.status === 'เปิดรับ'
-        ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister()">สมัคร</button>'
-        : '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>';
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
-        + '<td>' + a.type + '</td><td>' + a.date + '</td>'
-        + '<td>' + a.hours + ' ชม.</td><td>' + a.organizer + '</td>'
-        + '<td>' + a.registered + '/' + a.capacity + '</td>'
-        + '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>'
-        + '<td>' + btn + '</td>';
-      tbody.appendChild(tr);
-    });
+    if (tbody) {
+      tbody.innerHTML = '';
+      if (!res.data.length) {
+        var empty = document.createElement('tr');
+        empty.innerHTML = '<td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีกิจกรรม Admin สามารถเพิ่มกิจกรรมได้ที่หน้า Admin Panel</td>';
+        tbody.appendChild(empty);
+      }
+      res.data.forEach(function(a) {
+        var sc  = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
+        var btn = a.status === 'เปิดรับ'
+          ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister()">สมัคร</button>'
+          : '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>';
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
+          + '<td>' + a.type + '</td><td>' + a.date + '</td>'
+          + '<td>' + a.hours + ' ชม.</td><td>' + a.organizer + '</td>'
+          + '<td>' + a.registered + '/' + a.capacity + '</td>'
+          + '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>'
+          + '<td>' + btn + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Fill home activity cards (หน้าแรก)
+    var homeGrid = document.getElementById('homeActivityCards');
+    if (homeGrid) {
+      homeGrid.innerHTML = '';
+      var recent = res.data.filter(function(a) { return a.status !== 'ยกเลิก'; }).slice(0, 3);
+      if (!recent.length) {
+        homeGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);font-size:15px;">ยังไม่มีกิจกรรม<br><span style="font-size:13px;">Admin สามารถเพิ่มกิจกรรมได้ที่ Admin Panel</span></div>';
+        return;
+      }
+      var colors = [
+        'linear-gradient(135deg,#d4f4e1,#a8e6cf)',
+        'linear-gradient(135deg,#ffecd2,#fcb69f)',
+        'linear-gradient(135deg,#e8d8f0,#c3aae0)',
+        'linear-gradient(135deg,#d6eaff,#a3c8f0)',
+      ];
+      var icons = { 'สิ่งแวดล้อม':'🌳','บริการสุขภาพ':'❤️','สอนหนังสือ':'📚','เล่านิทาน':'📖','งานช่าง':'🔧','อื่นๆ':'⭐' };
+      recent.forEach(function(a, i) {
+        var icon = icons[a.type] || '⭐';
+        var badge = a.status === 'เปิดรับ'
+          ? '<span class="card-badge">เปิดรับ</span>'
+          : '<span class="card-badge" style="background:var(--text-muted);">'+a.status+'</span>';
+        var card = document.createElement('div');
+        card.className = 'activity-card';
+        card.style.cursor = 'pointer';
+        card.onclick = function() { showPage('activities'); };
+        card.innerHTML = '<div class="card-img" style="background:'+colors[i%colors.length]+'">'
+          + icon + badge + '</div>'
+          + '<div class="card-body">'
+          + '<h3>' + a.name + '</h3>'
+          + '<p>' + (a.detail || a.organizer) + '</p>'
+          + '<div class="card-meta">'
+          + '<span>📅 ' + a.date + '</span>'
+          + '<span>⏱️ ' + a.hours + ' ชม.</span>'
+          + '<span>👥 ' + a.registered + '/' + a.capacity + ' คน</span>'
+          + '</div></div>';
+        homeGrid.appendChild(card);
+      });
+    }
   });
 }
 
@@ -197,14 +268,15 @@ function goRegister() {
 function loadSummary() {
   callAPI('getSummary').then(function(res) {
     if (!res.success) return;
-    var map = {
-      'statTotal': 'จิตอาสาทั้งหมด', 'statStaff': 'บุคลากร',
-      'statStudent': 'นักศึกษา', 'statHours': 'ชั่วโมงที่อนุมัติแล้ว'
-    };
-    Object.keys(map).forEach(function(id) {
-      var e = document.getElementById(id);
-      if (e && res.data[map[id]] !== undefined) e.textContent = res.data[map[id]];
-    });
+    var d = res.data;
+    var s = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = (val !== undefined && val !== '') ? val : '0'; };
+    s('statTotal',    d['จิตอาสาทั้งหมด']);
+    s('statHours',    d['ชั่วโมงที่อนุมัติแล้ว']);
+    s('statActs',     d['กิจกรรมทั้งหมด']);
+    s('statStaff',    d['บุคลากร']);
+    s('statStudent',  d['นักศึกษา']);
+    s('statHoursAll', d['ชั่วโมงที่อนุมัติแล้ว']);
+    s('statCerts',    d['รออนุมัติ'] !== undefined ? '0' : '0');
   });
 }
 
@@ -394,6 +466,133 @@ function loadAdminReport() {
     s('adminStatAct', d['กิจกรรม']); s('adminStatVol', d['จิตอาสา']);
     s('adminStatHours', d['ชั่วโมง']); s('adminStatPending', d['รออนุมัติ']);
   });
+}
+
+// ── Admin Management (Super Admin only) ───────────────────
+function showAddAdminForm() {
+  var f = document.getElementById('addAdminForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'block') {
+    document.getElementById('new_admin_user').value = '';
+    document.getElementById('new_admin_pass').value = '';
+    document.getElementById('new_admin_name').value = '';
+    document.getElementById('new_admin_project').value = '';
+    document.getElementById('addAdminError').style.display = 'none';
+  }
+}
+
+function loadAdminList() {
+  var tbody = document.getElementById('adminListTable');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7c93;">กำลังโหลด...</td></tr>';
+
+  callAPI('getAdminList').then(function(res) {
+    tbody.innerHTML = '';
+
+    // Show hardcoded super admins first
+    var superRow = document.createElement('tr');
+    superRow.innerHTML = '<td><strong>admin</strong></td>'
+      + '<td>Super Admin</td>'
+      + '<td><span style="background:#e8f4f8;color:#1a5f7a;padding:3px 10px;border-radius:20px;font-size:12px;">ALL</span></td>'
+      + '<td><span class="status-pill pill-green">เปิดใช้</span></td>'
+      + '<td><span style="font-size:12px;color:#6b7c93;">ระบบ (แก้ใน app.js)</span></td>';
+    tbody.appendChild(superRow);
+
+    if (!res.success || !res.data.length) {
+      var empty = document.createElement('tr');
+      empty.innerHTML = '<td colspan="5" style="text-align:center;padding:16px;color:#6b7c93;">ยังไม่มี Admin จาก Sheets</td>';
+      tbody.appendChild(empty);
+      return;
+    }
+
+    res.data.forEach(function(a) {
+      var tr = document.createElement('tr');
+      var statusPill = a.active === 'TRUE' || a.active === true
+        ? '<span class="status-pill pill-green">เปิดใช้</span>'
+        : '<span class="status-pill pill-red">ปิดใช้</span>';
+
+      var toggleLabel = (a.active === 'TRUE' || a.active === true) ? 'ปิดใช้' : 'เปิดใช้';
+      var toggleBg    = (a.active === 'TRUE' || a.active === true) ? '#e74c3c' : '#27ae60';
+
+      var tdAction = document.createElement('td');
+      tdAction.style.display = 'flex';
+      tdAction.style.gap = '6px';
+
+      var btnToggle = document.createElement('button');
+      btnToggle.textContent = toggleLabel;
+      btnToggle.style.cssText = 'background:'+toggleBg+';color:white;border:none;padding:5px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
+      btnToggle.onclick = (function(username, active) {
+        return function() { toggleAdminStatus(username, active); };
+      })(a.username, a.active);
+
+      var btnDel = document.createElement('button');
+      btnDel.textContent = 'ลบ';
+      btnDel.style.cssText = 'background:#ecf0f1;color:#e74c3c;border:none;padding:5px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
+      btnDel.onclick = (function(username) {
+        return function() { deleteAdmin(username); };
+      })(a.username);
+
+      tdAction.appendChild(btnToggle);
+      tdAction.appendChild(btnDel);
+
+      tr.innerHTML = '<td><strong>' + a.username + '</strong></td>'
+        + '<td>' + a.name + '</td>'
+        + '<td><span style="background:#e8f4f8;color:#1a5f7a;padding:3px 10px;border-radius:20px;font-size:12px;">' + a.project + '</span></td>'
+        + '<td>' + statusPill + '</td>';
+      tr.appendChild(tdAction);
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function submitAddAdmin() {
+  var err  = document.getElementById('addAdminError');
+  var user = document.getElementById('new_admin_user').value.trim().toLowerCase();
+  var pass = document.getElementById('new_admin_pass').value.trim();
+  var name = document.getElementById('new_admin_name').value.trim();
+  var proj = document.getElementById('new_admin_project').value.trim();
+
+  if (!user || !pass || !name || !proj) {
+    err.textContent = 'กรุณากรอกข้อมูลให้ครบทุกช่อง';
+    err.style.display = 'block'; return;
+  }
+  if (user.length < 3) {
+    err.textContent = 'Username ต้องมีอย่างน้อย 3 ตัวอักษร';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+
+  callAPI('addAdmin', { username: user, password: pass, name: name, project: proj })
+    .then(function(res) {
+      if (res.success) {
+        document.getElementById('addAdminForm').style.display = 'none';
+        showToast('เพิ่ม Admin "' + user + '" สำเร็จ');
+        loadAdminList();
+      } else {
+        err.textContent = res.message;
+        err.style.display = 'block';
+      }
+    });
+}
+
+function toggleAdminStatus(username, currentActive) {
+  var newActive = (currentActive === 'TRUE' || currentActive === true) ? 'FALSE' : 'TRUE';
+  var label = newActive === 'TRUE' ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+  if (!confirm(label + ' Admin "' + username + '" ?')) return;
+  callAPI('updateAdminStatus', { username: username, active: newActive })
+    .then(function(res) {
+      if (res.success) { showToast(label + ' สำเร็จ'); loadAdminList(); }
+      else alert(res.message);
+    });
+}
+
+function deleteAdmin(username) {
+  if (!confirm('ลบ Admin "' + username + '" ออกจากระบบ?')) return;
+  callAPI('deleteAdmin', { username: username })
+    .then(function(res) {
+      if (res.success) { showToast('ลบ Admin สำเร็จ'); loadAdminList(); }
+      else alert(res.message);
+    });
 }
 
 // ── Init ───────────────────────────────────────────────────
