@@ -281,7 +281,7 @@ function loadActivities() {
         'linear-gradient(135deg,#e8d8f0,#c3aae0)',
         'linear-gradient(135deg,#d6eaff,#a3c8f0)',
       ];
-      var icons = { 'สิ่งแวดล้อม':'🌳','บริการสุขภาพ':'❤️','สอนหนังสือ':'📚','เล่านิทาน':'📖','งานช่าง':'🔧','อื่นๆ':'⭐' };
+      var icons = { 'ต้อนรับ':'🤝','ดูแลเด็ก/คนแก่':'👶','งานฝีมือ':'🎨','สอนหนังสือ':'📚','เล่านิทาน':'📖','บริการสุขภาพ':'❤️','สิ่งแวดล้อม':'🌳','งานช่าง':'🔧','อื่นๆ':'⭐' };
       recent.forEach(function(a, i) {
         var icon = icons[a.type] || '⭐';
         var badge = a.status === 'เปิดรับ'
@@ -328,25 +328,81 @@ function loadSummary() {
 }
 
 function loadHistory(code) {
-  if (!code) return;
+  if (!code || !currentUser) return;
+  var u = currentUser;
+
+  // Fill left sidebar with user info
+  var s = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = val || '-'; };
+  s('histAvatar', u.type === 'บุคลากร' ? '👔' : '🎓');
+  s('histName',   u.firstName + ' ' + u.lastName);
+  s('histCode',   u.code);
+  s('histDept',   u.department);
+
   callAPI('getHistory', { code: code }).then(function(res) {
-    if (!res.success) return;
-    var tbody = document.querySelector('#historyTable tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    var total = 0;
-    res.data.forEach(function(log) {
-      total += Number(log.hours);
-      var sc = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + log.date + '</td><td>' + log.organizer + '</td>'
-        + '<td>' + log.hours + ' ชม.</td><td>' + total + ' ชม.</td>'
-        + '<td><span class="status-pill ' + sc + '">' + log.status + '</span></td>';
-      tbody.appendChild(tr);
-    });
-    var el = document.getElementById('totalHours');
-    if (el) el.textContent = total;
+    var tbody  = document.querySelector('#historyTable tbody');
+    var tl     = document.getElementById('historyTimeline');
+    var total  = 0;
+    var joined = 0;
+    var pending = 0;
+
+    if (!res.success || !res.data.length) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">ยังไม่มีประวัติ</td></tr>';
+      if (tl)    tl.innerHTML    = '<div style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีประวัติการทำกิจกรรม</div>';
+      updateHistStats(0, 0, 0);
+      return;
+    }
+
+    // Table (ข.)
+    if (tbody) {
+      tbody.innerHTML = '';
+      res.data.forEach(function(log) {
+        if (log.status === 'อนุมัติ') { total += Number(log.hours); joined++; }
+        else if (log.status === 'รออนุมัติ') pending++;
+        var sc = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + log.date + '</td><td>' + log.organizer + '</td>'
+          + '<td>' + log.hours + ' ชม.</td><td>' + total + ' ชม.</td>'
+          + '<td><span class="status-pill ' + sc + '">' + log.status + '</span></td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Timeline (ก.)
+    if (tl) {
+      tl.innerHTML = '';
+      var reversed = res.data.slice().reverse();
+      reversed.forEach(function(log) {
+        var sc    = log.status === 'อนุมัติ' ? '#27ae60' : '#e8a838';
+        var icon  = log.status === 'อนุมัติ' ? '✅' : '⏳';
+        var item  = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = '<div class="timeline-dot" style="background:' + sc + ';"></div>'
+          + '<div class="timeline-content">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+          + '<h4>' + icon + ' ' + log.organizer + '</h4>'
+          + '<span class="status-pill ' + (log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange') + '">' + log.status + '</span>'
+          + '</div>'
+          + '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">'
+          + '📅 ' + log.date + ' &nbsp;⏱️ ' + log.hours + ' ชม.'
+          + '</div></div>';
+        tl.appendChild(item);
+      });
+    }
+
+    updateHistStats(total, joined, pending);
   });
+}
+
+function updateHistStats(total, joined, pending) {
+  var s = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = val; };
+  s('histHours',  total + ' ชม.');
+  s('histJoined', joined + ' ครั้ง');
+  var certs = total >= 40 ? 3 : total >= 24 ? 2 : total >= 8 ? 1 : 0;
+  s('histCerts',  certs + ' ใบ');
+  var bar = document.getElementById('histProgressBar');
+  if (bar) bar.style.width = Math.min(Math.round((total / 40) * 100), 100) + '%';
+  var el = document.getElementById('totalHours');
+  if (el) el.textContent = total;
 }
 
 function submitRegister() {

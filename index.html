@@ -666,12 +666,14 @@
         <select id="actFilterType" onchange="filterActivities()"
           style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
           <option value="">ทุกประเภท</option>
-          <option>สิ่งแวดล้อม</option>
-          <option>บริการสุขภาพ</option>
+          <option>ต้อนรับ</option>
+          <option>ดูแลเด็ก/คนแก่</option>
+          <option>งานฝีมือ</option>
           <option>สอนหนังสือ</option>
           <option>เล่านิทาน</option>
+          <option>บริการสุขภาพ</option>
+          <option>สิ่งแวดล้อม</option>
           <option>งานช่าง</option>
-          <option>ด้านรับ</option>
           <option>อื่นๆ</option>
         </select>
       </div>
@@ -707,9 +709,12 @@
     <!-- Quick Filter Pills -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="quickFilterPills">
       <button onclick="quickFilter('status','เปิดรับ')" class="filter-pill" data-key="status" data-val="เปิดรับ">🟢 เปิดรับสมัคร</button>
-      <button onclick="quickFilter('type','สิ่งแวดล้อม')" class="filter-pill" data-key="type" data-val="สิ่งแวดล้อม">🌱 สิ่งแวดล้อม</button>
+      <button onclick="quickFilter('type','ต้อนรับ')" class="filter-pill" data-key="type" data-val="ต้อนรับ">🤝 ต้อนรับ</button>
       <button onclick="quickFilter('type','บริการสุขภาพ')" class="filter-pill" data-key="type" data-val="บริการสุขภาพ">❤️ บริการสุขภาพ</button>
+      <button onclick="quickFilter('type','สิ่งแวดล้อม')" class="filter-pill" data-key="type" data-val="สิ่งแวดล้อม">🌱 สิ่งแวดล้อม</button>
       <button onclick="quickFilter('type','สอนหนังสือ')" class="filter-pill" data-key="type" data-val="สอนหนังสือ">📚 สอนหนังสือ</button>
+      <button onclick="quickFilter('type','ดูแลเด็ก/คนแก่')" class="filter-pill" data-key="type" data-val="ดูแลเด็ก/คนแก่">👶 ดูแลเด็ก/คนแก่</button>
+      <button onclick="quickFilter('type','งานช่าง')" class="filter-pill" data-key="type" data-val="งานช่าง">🔧 งานช่าง</button>
     </div>
 
     <div class="table-wrap">
@@ -866,33 +871,33 @@
       <div>
         <div class="form-card" style="margin-bottom:18px;">
           <div style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
-            <div style="font-size:48px;margin-bottom:8px;">👤</div>
-            <div style="font-weight:700;font-size:16px;">น.ส.สมใจ ใจดี</div>
-            <div style="color:var(--text-muted);font-size:13px;">6401001234</div>
-            <div style="color:var(--text-muted);font-size:13px;">คณะบริหารธุรกิจ</div>
+            <div style="font-size:48px;margin-bottom:8px;" id="histAvatar">👤</div>
+            <div style="font-weight:700;font-size:16px;" id="histName">-</div>
+            <div style="color:var(--text-muted);font-size:13px;" id="histCode">-</div>
+            <div style="color:var(--text-muted);font-size:13px;" id="histDept">-</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:13px;color:var(--text-muted);">⏱️ ชั่วโมงสะสม</span>
-              <strong style="color:var(--primary);font-size:18px;font-family:'Prompt',sans-serif;">24 ชม.</strong>
+              <strong style="color:var(--primary);font-size:18px;font-family:'Prompt',sans-serif;" id="histHours">0 ชม.</strong>
             </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:60%;"></div></div>
+            <div class="progress-bar"><div class="progress-fill" id="histProgressBar" style="width:0%;"></div></div>
             <div style="font-size:12px;color:var(--text-muted);text-align:right;">เป้าหมาย 40 ชม./ปี</div>
             <div style="display:flex;justify-content:space-between;">
               <span style="font-size:13px;color:var(--text-muted);">📋 กิจกรรม</span>
-              <strong>6 ครั้ง</strong>
+              <strong id="histJoined">-</strong>
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="font-size:13px;color:var(--text-muted);">🏆 เกียรติบัตร</span>
-              <strong>2 ใบ</strong>
+              <strong id="histCerts">-</strong>
             </div>
           </div>
         </div>
         <div class="form-card">
           <div style="font-weight:600;margin-bottom:12px;">🔑 จัดการบัญชี</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
-            <button class="btn btn-gray" style="justify-content:center;padding:10px;">🔒 เปลี่ยนรหัสผ่าน</button>
-            <button class="btn btn-gray" style="justify-content:center;padding:10px;">📄 ดาวน์โหลดเกียรติบัตร</button>
+            <button class="btn btn-gray" style="justify-content:center;padding:10px;" onclick="showResetPassword()">🔒 เปลี่ยนรหัสผ่าน</button>
+            <button class="btn btn-gray" style="justify-content:center;padding:10px;" onclick="alert('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้ครับ')">📄 ดาวน์โหลดเกียรติบัตร</button>
           </div>
         </div>
       </div>
@@ -1142,7 +1147,17 @@
       <div style="font-weight:600;font-size:16px;margin-bottom:18px;color:#0d3d52;">เพิ่มกิจกรรมใหม่</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชื่อกิจกรรม *</label><input id="act_name" type="text" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
-        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ประเภท *</label><select id="act_type" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;"><option>สิ่งแวดล้อม</option><option>บริการสุขภาพ</option><option>สอนหนังสือ</option><option>เล่านิทาน</option><option>งานช่าง</option><option>อื่นๆ</option></select></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ประเภท *</label><select id="act_type" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+  <option>ต้อนรับ</option>
+  <option>ดูแลเด็ก/คนแก่</option>
+  <option>งานฝีมือ</option>
+  <option>สอนหนังสือ</option>
+  <option>เล่านิทาน</option>
+  <option>บริการสุขภาพ</option>
+  <option>สิ่งแวดล้อม</option>
+  <option>งานช่าง</option>
+  <option>อื่นๆ</option>
+</select></div>
         <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">วันที่ *</label><input id="act_date" type="date" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
         <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชั่วโมง *</label><input id="act_hours" type="number" min="1" max="40" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
         <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">จำนวนรับ *</label><input id="act_cap" type="number" min="1" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
