@@ -190,33 +190,33 @@ function _afterAdminLogin() {
 function adminLogout() { currentAdmin = null; showPage('home'); }
 
 // ── Activities ─────────────────────────────────────────────
+// Store all activities for client-side filtering
+var allActivities = [];
+
 function loadActivities() {
   callAPI('getActivities').then(function(res) {
     if (!res.success) return;
+    allActivities = res.data;
 
-    // Fill activities table (หน้ากิจกรรม)
-    var tbody = document.querySelector('#activitiesTable tbody');
-    if (tbody) {
-      tbody.innerHTML = '';
-      if (!res.data.length) {
-        var empty = document.createElement('tr');
-        empty.innerHTML = '<td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีกิจกรรม Admin สามารถเพิ่มกิจกรรมได้ที่หน้า Admin Panel</td>';
-        tbody.appendChild(empty);
-      }
-      res.data.forEach(function(a) {
-        var sc  = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
-        var btn = a.status === 'เปิดรับ'
-          ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister()">สมัคร</button>'
-          : '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>';
-        var tr = document.createElement('tr');
-        tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
-          + '<td>' + a.type + '</td><td>' + a.date + '</td>'
-          + '<td>' + a.hours + ' ชม.</td><td>' + a.organizer + '</td>'
-          + '<td>' + a.registered + '/' + a.capacity + '</td>'
-          + '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>'
-          + '<td>' + btn + '</td>';
-        tbody.appendChild(tr);
+    // Populate organizer dropdown
+    var orgSel = document.getElementById('actFilterOrg');
+    if (orgSel) {
+      var orgs = {};
+      res.data.forEach(function(a) { orgs[a.organizer] = true; });
+      orgSel.innerHTML = '<option value="">ทุกหน่วยงาน</option>';
+      Object.keys(orgs).forEach(function(o) {
+        orgSel.innerHTML += '<option value="'+o+'">'+o+'</option>';
       });
+    }
+
+    // Fill activities table with filter support
+    if (!res.data.length) {
+      var tbody2 = document.querySelector('#activitiesTable tbody');
+      if (tbody2) tbody2.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีกิจกรรม Admin สามารถเพิ่มกิจกรรมได้ที่หน้า Admin Panel</td></tr>';
+    } else {
+      renderActivitiesTable(res.data);
+      var counter = document.getElementById('actFilterCount');
+      if (counter) counter.textContent = res.data.length + '/' + res.data.length;
     }
 
     // Fill home activity cards (หน้าแรก)
@@ -468,6 +468,92 @@ function loadAdminReport() {
   });
 }
 
+// ── Activity Filter ────────────────────────────────────────
+function filterActivities() {
+  var search = (document.getElementById('actSearch') || {value:''}).value.toLowerCase();
+  var type   = (document.getElementById('actFilterType') || {value:''}).value;
+  var status = (document.getElementById('actFilterStatus') || {value:''}).value;
+  var org    = (document.getElementById('actFilterOrg') || {value:''}).value;
+
+  var filtered = allActivities.filter(function(a) {
+    var matchSearch = !search || a.name.toLowerCase().indexOf(search) !== -1 || a.organizer.toLowerCase().indexOf(search) !== -1;
+    var matchType   = !type   || a.type === type;
+    var matchStatus = !status || a.status === status;
+    var matchOrg    = !org    || a.organizer === org;
+    return matchSearch && matchType && matchStatus && matchOrg;
+  });
+
+  renderActivitiesTable(filtered);
+
+  var counter = document.getElementById('actFilterCount');
+  if (counter) counter.textContent = filtered.length + '/' + allActivities.length;
+}
+
+function resetActivityFilter() {
+  var ids = ['actSearch','actFilterType','actFilterStatus','actFilterOrg'];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  // Reset pills
+  document.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+  renderActivitiesTable(allActivities);
+  var counter = document.getElementById('actFilterCount');
+  if (counter) counter.textContent = allActivities.length + '/' + allActivities.length;
+}
+
+function quickFilter(key, val) {
+  // Toggle pill
+  var pill = document.querySelector('.filter-pill[data-key="'+key+'"][data-val="'+val+'"]');
+  var isActive = pill && pill.classList.contains('active');
+
+  // Clear same-key pills
+  document.querySelectorAll('.filter-pill[data-key="'+key+'"]').forEach(function(p) { p.classList.remove('active'); });
+
+  if (!isActive) {
+    if (pill) pill.classList.add('active');
+    if (key === 'status') {
+      var el = document.getElementById('actFilterStatus');
+      if (el) el.value = val;
+    } else if (key === 'type') {
+      var el2 = document.getElementById('actFilterType');
+      if (el2) el2.value = val;
+    }
+  } else {
+    if (key === 'status') { var e = document.getElementById('actFilterStatus'); if(e) e.value=''; }
+    if (key === 'type')   { var e2 = document.getElementById('actFilterType');  if(e2) e2.value=''; }
+  }
+  filterActivities();
+}
+
+function renderActivitiesTable(data) {
+  var tbody = document.querySelector('#activitiesTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!data.length) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">ไม่พบกิจกรรมที่ตรงกับเงื่อนไข</td>';
+    tbody.appendChild(tr);
+    return;
+  }
+
+  data.forEach(function(a) {
+    var sc  = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
+    var btn = a.status === 'เปิดรับ'
+      ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister()">สมัคร</button>'
+      : '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>';
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
+      + '<td>' + a.type + '</td><td>' + a.date + '</td>'
+      + '<td>' + a.hours + ' ชม.</td><td>' + a.organizer + '</td>'
+      + '<td>' + a.registered + '/' + a.capacity + '</td>'
+      + '<td><span class="status-pill ' + sc + '">' + a.status + '</span></td>'
+      + '<td>' + btn + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
 // ── Admin Management (Super Admin only) ───────────────────
 function showAddAdminForm() {
   var f = document.getElementById('addAdminForm');
@@ -592,6 +678,81 @@ function deleteAdmin(username) {
     .then(function(res) {
       if (res.success) { showToast('ลบ Admin สำเร็จ'); loadAdminList(); }
       else alert(res.message);
+    });
+}
+
+// ── Reset Password ────────────────────────────────────────
+var resetVerifiedCode = null;
+
+function showResetPassword() {
+  resetVerifiedCode = null;
+  document.getElementById('resetStep1').style.display = 'block';
+  document.getElementById('resetStep2').style.display = 'none';
+  document.getElementById('reset_code').value   = '';
+  document.getElementById('reset_fname').value  = '';
+  document.getElementById('reset_lname').value  = '';
+  document.getElementById('reset_newpass').value  = '';
+  document.getElementById('reset_newpass2').value = '';
+  document.getElementById('resetStep1Error').style.display = 'none';
+  document.getElementById('resetStep2Error').style.display = 'none';
+  openModal('resetPassModal');
+}
+
+function verifyResetIdentity() {
+  var code  = document.getElementById('reset_code').value.trim();
+  var fname = document.getElementById('reset_fname').value.trim();
+  var lname = document.getElementById('reset_lname').value.trim();
+  var err   = document.getElementById('resetStep1Error');
+
+  if (!code || !fname || !lname) {
+    err.textContent = 'กรุณากรอกข้อมูลให้ครบทุกช่อง';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+
+  callAPI('verifyResetIdentity', { code: code, firstName: fname, lastName: lname })
+    .then(function(res) {
+      if (res.success) {
+        resetVerifiedCode = code;
+        document.getElementById('resetStep1').style.display = 'none';
+        document.getElementById('resetStep2').style.display = 'block';
+      } else {
+        err.textContent = res.message;
+        err.style.display = 'block';
+      }
+    });
+}
+
+function submitResetPassword() {
+  var pass  = document.getElementById('reset_newpass').value;
+  var pass2 = document.getElementById('reset_newpass2').value;
+  var err   = document.getElementById('resetStep2Error');
+
+  if (!pass || pass.length < 6) {
+    err.textContent = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+    err.style.display = 'block'; return;
+  }
+  if (pass !== pass2) {
+    err.textContent = 'รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่';
+    err.style.display = 'block'; return;
+  }
+  if (!resetVerifiedCode) {
+    err.textContent = 'เกิดข้อผิดพลาด กรุณาเริ่มใหม่';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+
+  callAPI('resetPassword', { code: resetVerifiedCode, newPassword: pass })
+    .then(function(res) {
+      if (res.success) {
+        closeModal('resetPassModal');
+        resetVerifiedCode = null;
+        showToast('✅ เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่');
+        setTimeout(function() { openModal('userLoginModal'); }, 1500);
+      } else {
+        err.textContent = res.message;
+        err.style.display = 'block';
+      }
     });
 }
 
