@@ -144,6 +144,7 @@ function setLoggedIn(user) {
   var fullName = user.firstName + ' ' + user.lastName;
   var fillMap = {
     'reg_code': user.code,  'reg_name': fullName,
+    'free_code': user.code, 'free_name': fullName,
     'reg_pos':  user.position, 'reg_dept': user.department,
     'reg_phone': user.phone,   'reg_email': user.email,
     'log_code': user.code,  'log_name': fullName
@@ -918,6 +919,56 @@ function loadProfile() {
   });
 }
 
+// ── Free Time Deposit ─────────────────────────────────────
+function submitFreeTime() {
+  if (!currentUser) { openModal('userLoginModal'); return; }
+  var err      = document.getElementById('freeError');
+  var type     = document.getElementById('free_type').value;
+  var title    = document.getElementById('free_title').value.trim();
+  var date     = document.getElementById('free_date').value;
+  var hours    = document.getElementById('free_hours').value;
+  var detail   = document.getElementById('free_detail').value.trim();
+  var location = document.getElementById('free_location').value.trim();
+  var org      = document.getElementById('free_org').value.trim();
+
+  if (!type)   { err.textContent='กรุณาเลือกประเภทงาน';       err.style.display='block'; return; }
+  if (!title)  { err.textContent='กรุณาระบุชื่อกิจกรรม/งาน'; err.style.display='block'; return; }
+  if (!date)   { err.textContent='กรุณาระบุวันที่';            err.style.display='block'; return; }
+  if (!hours || hours < 1 || hours > 40) { err.textContent='กรุณาระบุชั่วโมง 1-40'; err.style.display='block'; return; }
+  if (!detail) { err.textContent='กรุณาระบุรายละเอียดงาน';    err.style.display='block'; return; }
+  err.style.display = 'none';
+
+  var note = '[อิสระ] ' + title
+    + (location ? ' | สถานที่: ' + location : '')
+    + (org      ? ' | หน่วยงาน: ' + org    : '')
+    + ' | รายละเอียด: ' + detail;
+
+  callAPI('registerTime', {
+    activityId: 0,
+    volunteerCode: currentUser.code,
+    fullName: currentUser.firstName + ' ' + currentUser.lastName,
+    date: date, startTime: '', hours: hours,
+    organizer: org || 'อิสระ',
+    note: note
+  }).then(function(res) {
+    if (res.success) {
+      showToast('✅ ส่งคำขอฝากเวลาสำเร็จ รอการอนุมัติ');
+      clearFreeForm();
+      showPage('history');
+    } else {
+      err.textContent = res.message;
+      err.style.display = 'block';
+    }
+  });
+}
+
+function clearFreeForm() {
+  ['free_type','free_title','free_date','free_hours','free_location','free_org','free_detail'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('freeError').style.display = 'none';
+}
+
 // ── Reset Password ────────────────────────────────────────
 var resetVerifiedCode = null;
 
@@ -995,7 +1046,7 @@ function submitResetPassword() {
 
 // ── Init ───────────────────────────────────────────────────
 (function() {
-  ['tab-record','hist-b','rep-person','rep-cert',
+  ['tab-record','tab-free','hist-b','rep-person','rep-cert',
    'admin-activities','admin-members','admin-cert','admin-report'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.style.display = 'none';
   });

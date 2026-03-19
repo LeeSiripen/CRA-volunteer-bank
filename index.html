@@ -745,8 +745,9 @@
     </div>
     <div class="form-card">
       <div class="tabs" style="margin-bottom:28px;">
-        <button class="tab-btn active" onclick="switchTab(this,'tab-self')">📝 แสดงเจตนาสมัคร</button>
+        <button class="tab-btn active" onclick="switchTab(this,'tab-self')">📝 สมัครร่วมกิจกรรม</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-record')">✅ บันทึกเวลาหลังกิจกรรม</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-free')">⏱️ ฝากเวลาอิสระ</button>
       </div>
 
       <!-- Tab: แสดงเจตนาสมัคร -->
@@ -812,6 +813,68 @@
           <span>⚠️</span>
           <div>การบันทึกเวลาจิตอาสาจะต้องได้รับการอนุมัติจากหน่วยงานจัดกิจกรรมก่อนจึงจะมีผล</div>
         </div>
+
+      <!-- Tab: ฝากเวลาอิสระ -->
+      <div id="tab-free" style="display:none;">
+        <div class="alert alert-info" style="margin-bottom:20px;">
+          <span>ℹ️</span>
+          <div>สำหรับงานจิตอาสา<strong>นอกกิจกรรมที่จัดในระบบ</strong> เช่น ช่วยงานชุมชน ดูแลผู้สูงอายุ ฯลฯ ต้องได้รับการอนุมัติก่อนจึงจะนับชั่วโมง</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
+            <input id="free_code" type="text" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล</label>
+            <input id="free_name" type="text" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>ประเภทงานจิตอาสา <span class="req">*</span></label>
+            <select id="free_type" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+              <option value="">-- เลือกประเภท --</option>
+              <option>ดูแลเด็ก/คนแก่</option>
+              <option>งานฝีมือ</option>
+              <option>สอนหนังสือ</option>
+              <option>เล่านิทาน</option>
+              <option>บริการสุขภาพ</option>
+              <option>สิ่งแวดล้อม</option>
+              <option>งานช่าง</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ชื่อกิจกรรม/งานที่ทำ <span class="req">*</span></label>
+            <input id="free_title" type="text" placeholder="เช่น ช่วยดูแลผู้สูงอายุในชุมชน">
+          </div>
+          <div class="form-group">
+            <label>วันที่ทำกิจกรรม <span class="req">*</span></label>
+            <input id="free_date" type="date">
+          </div>
+          <div class="form-group">
+            <label>จำนวนชั่วโมง <span class="req">*</span></label>
+            <input id="free_hours" type="number" min="1" max="40" placeholder="ระบุ 1-40">
+            <div class="input-hint">ระบุ 1-40 ชั่วโมง</div>
+          </div>
+          <div class="form-group">
+            <label>สถานที่</label>
+            <input id="free_location" type="text" placeholder="เช่น ชุมชนบางรัก กรุงเทพฯ">
+          </div>
+          <div class="form-group">
+            <label>หน่วยงานที่จัด/ร่วม</label>
+            <input id="free_org" type="text" placeholder="เช่น มูลนิธิ... หรือ ชุมชน...">
+          </div>
+          <div class="form-group full">
+            <label>รายละเอียดงานที่ทำ <span class="req">*</span></label>
+            <textarea id="free_detail" rows="3" placeholder="อธิบายงานจิตอาสาที่ท่านได้ทำ..."
+              style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+          </div>
+        </div>
+        <div id="freeError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px 14px;font-size:13px;color:#9a1f14;margin-bottom:16px;"></div>
+        <div class="form-actions">
+          <button class="btn btn-green" onclick="submitFreeTime()">⏱️ ส่งคำขอฝากเวลา</button>
+          <button class="btn btn-gray" onclick="clearFreeForm()">ล้างข้อมูล</button>
+        </div>
+      </div>
         <div class="form-grid">
           <div class="form-group">
             <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
