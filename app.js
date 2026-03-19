@@ -1076,36 +1076,69 @@ function loadAnnouncements() {
     if (urgent.length) {
       var bannerZone = document.createElement('div');
       bannerZone.style.cssText = 'grid-column:1/-1;display:flex;flex-direction:column;gap:12px;margin-bottom:8px;';
+
       urgent.forEach(function(ann) {
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#e74c3c,#c0392b);border-radius:14px;padding:20px 24px;color:white;display:flex;align-items:center;gap:16px;box-shadow:0 4px 20px rgba(231,76,60,.35);';
 
-        var hasMedia = ann.image || ann.youtube;
-        var mediaHtml = '';
+        // Icon
+        var icon = document.createElement('div');
+        icon.style.cssText = 'font-size:32px;flex-shrink:0;';
+        icon.textContent = '🚨';
+        banner.appendChild(icon);
+
+        // Image (if any) - using DOM to avoid quote issues
         if (ann.image) {
-          mediaHtml = '<img src="' + ann.image + '" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px;flex-shrink:0;" onerror="this.style.display='none'">';
+          var img = document.createElement('img');
+          img.src = ann.image;
+          img.alt = '';
+          img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:10px;flex-shrink:0;';
+          img.onerror = function(){ this.remove(); };
+          banner.appendChild(img);
         }
 
-        var linkHtml = ann.link
-          ? '<a href="' + ann.link + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:white;font-size:13px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.2);padding:6px 14px;border-radius:20px;margin-top:8px;">🔗 อ่านต่อ →</a>'
-          : '';
+        // Text body
+        var body = document.createElement('div');
+        body.style.cssText = 'flex:1;min-width:0;';
 
-        banner.innerHTML = '<div style="font-size:32px;flex-shrink:0;">🚨</div>'
-          + mediaHtml
-          + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:11px;font-weight:600;opacity:.8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">ประกาศด่วน · ' + ann.date + '</div>'
-          + '<div style="font-family:Prompt,sans-serif;font-weight:700;font-size:18px;line-height:1.3;margin-bottom:6px;">' + ann.title + '</div>'
-          + '<div style="font-size:14px;opacity:.9;line-height:1.6;">' + (ann.detail||'').substring(0,200) + (ann.detail && ann.detail.length>200?'...':'') + '</div>'
-          + linkHtml
-          + '</div>';
+        var dateLine = document.createElement('div');
+        dateLine.style.cssText = 'font-size:11px;font-weight:600;opacity:.8;letter-spacing:.5px;margin-bottom:4px;';
+        dateLine.textContent = 'ประกาศด่วน · ' + ann.date;
+        body.appendChild(dateLine);
 
+        var titleEl = document.createElement('div');
+        titleEl.style.cssText = 'font-family:Prompt,sans-serif;font-weight:700;font-size:18px;line-height:1.3;margin-bottom:6px;';
+        titleEl.textContent = ann.title;
+        body.appendChild(titleEl);
+
+        var detailEl = document.createElement('div');
+        detailEl.style.cssText = 'font-size:14px;opacity:.9;line-height:1.6;';
+        detailEl.textContent = (ann.detail||'').substring(0, 200) + (ann.detail && ann.detail.length > 200 ? '...' : '');
+        body.appendChild(detailEl);
+
+        if (ann.link) {
+          var linkEl = document.createElement('a');
+          linkEl.href = ann.link;
+          linkEl.target = '_blank';
+          linkEl.rel = 'noopener';
+          linkEl.style.cssText = 'display:inline-flex;align-items:center;gap:6px;color:white;font-size:13px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.2);padding:6px 14px;border-radius:20px;margin-top:8px;';
+          linkEl.textContent = '🔗 อ่านต่อ →';
+          body.appendChild(linkEl);
+        }
+        banner.appendChild(body);
         bannerZone.appendChild(banner);
 
-        // YouTube below banner if exists
+        // YouTube below banner
         if (ann.youtube) {
           var ytWrap = document.createElement('div');
           ytWrap.style.cssText = 'position:relative;padding-bottom:40%;height:0;overflow:hidden;border-radius:12px;';
-          ytWrap.innerHTML = '<iframe src="https://www.youtube.com/embed/' + ann.youtube + '" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen loading="lazy"></iframe>';
+          var iframe = document.createElement('iframe');
+          iframe.src = 'https://www.youtube.com/embed/' + ann.youtube;
+          iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
+          iframe.frameBorder = '0';
+          iframe.allowFullscreen = true;
+          iframe.loading = 'lazy';
+          ytWrap.appendChild(iframe);
           bannerZone.appendChild(ytWrap);
         }
       });
@@ -1126,7 +1159,7 @@ function loadAnnouncements() {
         var html = '';
         if (ann.image) {
           html += '<div style="height:160px;overflow:hidden;">'
-            + '<img src="' + ann.image + '" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display='none'">'
+            + '<img src="' + ann.image + '" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.remove()">'
             + '</div>';
         }
         if (ann.youtube && !ann.image) {
