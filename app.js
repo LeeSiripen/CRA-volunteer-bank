@@ -55,12 +55,23 @@ function showPage(id) {
 
 function switchTab(btn, targetId) {
   var tabs = btn.closest('.tabs');
-  tabs.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  // Get all tab target IDs from buttons
+  var tabIds = [];
+  tabs.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.classList.remove('active');
+    var match = b.getAttribute('onclick').match(/'([^']+)'\)/);
+    if (match) tabIds.push(match[1]);
+  });
   btn.classList.add('active');
-  var el = tabs.nextElementSibling;
-  while (el) { if (el.id) el.style.display = 'none'; el = el.nextElementSibling; }
-  document.getElementById(targetId).style.display = 'block';
+  // Hide all tab panels, show target
+  tabIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var target = document.getElementById(targetId);
+  if (target) target.style.display = 'block';
   if (targetId === 'admin-manage') loadAdminList();
+  if (targetId === 'admin-announce') loadAdminAnnouncements();
 }
 
 function showToast(msg) {
@@ -1044,12 +1055,223 @@ function submitResetPassword() {
     });
 }
 
+
+// ── Announcements ─────────────────────────────────────────
+function loadAnnouncements() {
+  callAPI('getAnnouncements').then(function(res) {
+    var container = document.getElementById('homeAnnouncements');
+    if (!container) return;
+    if (!res.success || !res.data.length) {
+      container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีประกาศ</div>';
+      return;
+    }
+
+    // Separate urgent vs normal, limit to 5 latest total
+    var urgent  = res.data.filter(function(a) { return a.type === 'ด่วน'; });
+    var normal  = res.data.filter(function(a) { return a.type !== 'ด่วน'; }).slice(0, 5);
+
+    container.innerHTML = '';
+
+    // ── Banner Zone: ด่วน ──────────────────────────────────
+    if (urgent.length) {
+      var bannerZone = document.createElement('div');
+      bannerZone.style.cssText = 'grid-column:1/-1;display:flex;flex-direction:column;gap:12px;margin-bottom:8px;';
+      urgent.forEach(function(ann) {
+        var banner = document.createElement('div');
+        banner.style.cssText = 'background:linear-gradient(135deg,#e74c3c,#c0392b);border-radius:14px;padding:20px 24px;color:white;display:flex;align-items:center;gap:16px;box-shadow:0 4px 20px rgba(231,76,60,.35);';
+
+        var hasMedia = ann.image || ann.youtube;
+        var mediaHtml = '';
+        if (ann.image) {
+          mediaHtml = '<img src="' + ann.image + '" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:10px;flex-shrink:0;" onerror="this.style.display='none'">';
+        }
+
+        var linkHtml = ann.link
+          ? '<a href="' + ann.link + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:white;font-size:13px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.2);padding:6px 14px;border-radius:20px;margin-top:8px;">🔗 อ่านต่อ →</a>'
+          : '';
+
+        banner.innerHTML = '<div style="font-size:32px;flex-shrink:0;">🚨</div>'
+          + mediaHtml
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:11px;font-weight:600;opacity:.8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">ประกาศด่วน · ' + ann.date + '</div>'
+          + '<div style="font-family:Prompt,sans-serif;font-weight:700;font-size:18px;line-height:1.3;margin-bottom:6px;">' + ann.title + '</div>'
+          + '<div style="font-size:14px;opacity:.9;line-height:1.6;">' + (ann.detail||'').substring(0,200) + (ann.detail && ann.detail.length>200?'...':'') + '</div>'
+          + linkHtml
+          + '</div>';
+
+        bannerZone.appendChild(banner);
+
+        // YouTube below banner if exists
+        if (ann.youtube) {
+          var ytWrap = document.createElement('div');
+          ytWrap.style.cssText = 'position:relative;padding-bottom:40%;height:0;overflow:hidden;border-radius:12px;';
+          ytWrap.innerHTML = '<iframe src="https://www.youtube.com/embed/' + ann.youtube + '" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen loading="lazy"></iframe>';
+          bannerZone.appendChild(ytWrap);
+        }
+      });
+      container.appendChild(bannerZone);
+    }
+
+    // ── Card Grid: ทั่วไป + ข่าวสาร ──────────────────────
+    if (normal.length) {
+      normal.forEach(function(ann) {
+        var typeColor = ann.type === 'ข่าวสาร' ? '#1a5f7a' : '#6b7c93';
+        var typeIcon  = ann.type === 'ข่าวสาร' ? '📰' : '📌';
+
+        var card = document.createElement('div');
+        card.style.cssText = 'background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(26,95,122,.08);display:flex;flex-direction:column;border:1px solid #e8f0f8;transition:box-shadow .2s;';
+        card.onmouseover = function(){ this.style.boxShadow='0 8px 32px rgba(26,95,122,.18)'; };
+        card.onmouseout  = function(){ this.style.boxShadow='0 4px 20px rgba(26,95,122,.08)'; };
+
+        var html = '';
+        if (ann.image) {
+          html += '<div style="height:160px;overflow:hidden;">'
+            + '<img src="' + ann.image + '" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display='none'">'
+            + '</div>';
+        }
+        if (ann.youtube && !ann.image) {
+          html += '<div style="position:relative;padding-bottom:52%;height:0;overflow:hidden;">'
+            + '<iframe src="https://www.youtube.com/embed/' + ann.youtube + '" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen loading="lazy"></iframe>'
+            + '</div>';
+        }
+        html += '<div style="padding:18px 20px;flex:1;display:flex;flex-direction:column;gap:8px;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;">'
+          + '<span style="font-size:11px;font-weight:600;color:' + typeColor + ';background:' + typeColor + '15;padding:3px 10px;border-radius:20px;">' + typeIcon + ' ' + ann.type + '</span>'
+          + '<span style="font-size:12px;color:var(--text-muted);">📅 ' + ann.date + '</span>'
+          + '</div>';
+        html += '<div style="font-family:Prompt,sans-serif;font-weight:600;font-size:15px;color:#0d3d52;line-height:1.4;">' + ann.title + '</div>';
+        html += '<div style="font-size:13px;color:var(--text-muted);line-height:1.7;flex:1;">' + (ann.detail||'').substring(0,120) + (ann.detail && ann.detail.length>120?'...':'') + '</div>';
+        if (ann.link) {
+          html += '<a href="' + ann.link + '" target="_blank" rel="noopener" style="color:#1a5f7a;font-size:13px;font-weight:600;text-decoration:none;margin-top:4px;">🔗 อ่านต่อ →</a>';
+        }
+        html += '</div>';
+        card.innerHTML = html;
+        container.appendChild(card);
+      });
+    }
+  });
+}
+
+function loadAdminAnnouncements() {
+  var tbody = document.getElementById('announceListTable');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7c93;">กำลังโหลด...</td></tr>';
+  callAPI('getAnnouncements').then(function(res) {
+    if (!res.success || !res.data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#6b7c93;">ยังไม่มีประกาศ</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    res.data.forEach(function(ann) {
+      var tr = document.createElement('tr');
+      var tdAction = document.createElement('td');
+      tdAction.style.cssText = 'display:flex;gap:6px;';
+
+      var btnEdit = document.createElement('button');
+      btnEdit.textContent = 'แก้ไข';
+      btnEdit.style.cssText = 'background:#1a5f7a;color:white;border:none;padding:5px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
+      btnEdit.onclick = (function(a) { return function() { editAnnounce(a); }; })(ann);
+
+      var btnDel = document.createElement('button');
+      btnDel.textContent = 'ลบ';
+      btnDel.style.cssText = 'background:#e74c3c;color:white;border:none;padding:5px 12px;border-radius:8px;font-family:Sarabun,sans-serif;font-size:12px;cursor:pointer;';
+      btnDel.onclick = (function(id) { return function() { deleteAnnounce(id); }; })(ann.id);
+
+      tdAction.appendChild(btnEdit);
+      tdAction.appendChild(btnDel);
+
+      tr.innerHTML = '<td><strong>' + ann.title + '</strong></td>'
+        + '<td>' + ann.type + '</td>'
+        + '<td>' + ann.date + '</td>'
+        + '<td style="text-align:center;">' + (ann.image ? '✅' : '-') + '</td>'
+        + '<td style="text-align:center;">' + (ann.youtube ? '✅' : '-') + '</td>';
+      tr.appendChild(tdAction);
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function showAddAnnounce() {
+  document.getElementById('announceFormTitle').textContent = '➕ เพิ่มประกาศใหม่';
+  document.getElementById('ann_edit_id').value = '';
+  ['ann_title','ann_detail','ann_image','ann_link','ann_youtube'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ann_type').value = 'ทั่วไป';
+  document.getElementById('ann_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('addAnnounceError').style.display = 'none';
+  document.getElementById('addAnnounceForm').style.display = 'block';
+  document.getElementById('addAnnounceForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function editAnnounce(ann) {
+  document.getElementById('announceFormTitle').textContent = '✏️ แก้ไขประกาศ';
+  document.getElementById('ann_edit_id').value  = ann.id;
+  document.getElementById('ann_title').value    = ann.title   || '';
+  document.getElementById('ann_type').value     = ann.type    || 'ทั่วไป';
+  document.getElementById('ann_date').value     = ann.date    || '';
+  document.getElementById('ann_detail').value   = ann.detail  || '';
+  document.getElementById('ann_image').value    = ann.image   || '';
+  document.getElementById('ann_link').value     = ann.link    || '';
+  document.getElementById('ann_youtube').value  = ann.youtube || '';
+  document.getElementById('addAnnounceError').style.display = 'none';
+  document.getElementById('addAnnounceForm').style.display = 'block';
+  document.getElementById('addAnnounceForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function submitAnnounce() {
+  var err     = document.getElementById('addAnnounceError');
+  var title   = document.getElementById('ann_title').value.trim();
+  var type    = document.getElementById('ann_type').value;
+  var date    = document.getElementById('ann_date').value;
+  var detail  = document.getElementById('ann_detail').value.trim();
+  var image   = document.getElementById('ann_image').value.trim();
+  var link    = document.getElementById('ann_link').value.trim();
+  var youtube = document.getElementById('ann_youtube').value.trim();
+  var editId  = document.getElementById('ann_edit_id').value;
+
+  // Extract YouTube ID if user pasted full URL
+  var ytMatch = youtube.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (ytMatch) youtube = ytMatch[1];
+
+  if (!title)  { err.textContent = 'กรุณาใส่ชื่อเรื่อง';   err.style.display = 'block'; return; }
+  if (!date)   { err.textContent = 'กรุณาระบุวันที่';        err.style.display = 'block'; return; }
+  if (!detail) { err.textContent = 'กรุณาใส่รายละเอียด';    err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  var action = editId ? 'updateAnnouncement' : 'addAnnouncement';
+  callAPI(action, {
+    id: editId, title: title, type: type, date: date,
+    detail: detail, image: image, link: link, youtube: youtube,
+    author: currentAdmin ? currentAdmin.name : 'Admin'
+  }).then(function(res) {
+    if (res.success) {
+      document.getElementById('addAnnounceForm').style.display = 'none';
+      showToast(editId ? '✅ แก้ไขประกาศสำเร็จ' : '✅ เพิ่มประกาศสำเร็จ');
+      loadAdminAnnouncements();
+      loadAnnouncements();
+    } else {
+      err.textContent = res.message;
+      err.style.display = 'block';
+    }
+  });
+}
+
+function deleteAnnounce(id) {
+  if (!confirm('ลบประกาศนี้?')) return;
+  callAPI('deleteAnnouncement', { id: id }).then(function(res) {
+    if (res.success) { showToast('ลบประกาศสำเร็จ'); loadAdminAnnouncements(); loadAnnouncements(); }
+    else alert(res.message);
+  });
+}
+
 // ── Init ───────────────────────────────────────────────────
 (function() {
-  ['tab-record','tab-free','hist-b','rep-person','rep-cert',
+  ['tab-record','tab-self','hist-b','rep-person','rep-cert',
    'admin-activities','admin-members','admin-cert','admin-report'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   loadActivities();
   loadSummary();
+  loadAnnouncements();
 })();

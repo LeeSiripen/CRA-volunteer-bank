@@ -414,6 +414,13 @@
     color: white;
     border-color: var(--primary);
   }
+
+  @media (max-width: 900px) {
+    #homeAnnouncements { grid-template-columns: 1fr 1fr !important; }
+  }
+  @media (max-width: 600px) {
+    #homeAnnouncements { grid-template-columns: 1fr !important; }
+  }
 </style>
 </head>
 <body>
@@ -632,112 +639,13 @@
       <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">กำลังโหลดกิจกรรม...</div>
     </div>
 
-    <div class="section-title">📢 ประกาศ / ข่าวสาร</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px;">
-      <div class="alert alert-info">
-        <span style="font-size:20px;">ℹ️</span>
-        <div><strong>เปิดรับสมัครกิจกรรมใหม่!</strong><br>กิจกรรมจิตอาสาประจำเดือนมีนาคม 2568 เปิดรับสมัครแล้ว</div>
-      </div>
-      <div class="alert alert-success">
-        <span style="font-size:20px;">🏆</span>
-        <div><strong>เกียรติบัตรพร้อมแล้ว!</strong><br>เกียรติบัตรกิจกรรมเดือนมกราคม 2568 สามารถดาวน์โหลดได้แล้ว</div>
-      </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="section-title" style="margin-bottom:0;">📢 ประกาศ / ข่าวสาร</div>
     </div>
-  </div>
-
-  <!-- ===== ACTIVITIES PAGE ===== -->
-  <div class="page" id="page-activities">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-      <div class="section-title" style="margin-bottom:0;">📋 กิจกรรมจิตอาสาทั้งหมด</div>
-      <div style="font-size:14px;color:var(--text-muted);">แสดง <strong id="actFilterCount">-</strong> รายการ</div>
+    <div id="homeAnnouncements" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px;">
+      <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">กำลังโหลดประกาศ...</div>
     </div>
 
-    <!-- Filter Bar -->
-    <div style="background:white;border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-      <!-- Search -->
-      <div style="flex:2;min-width:180px;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">ค้นหา</label>
-        <input id="actSearch" type="text" placeholder="🔍 ชื่อกิจกรรม หรือหน่วยงาน..." oninput="filterActivities()"
-          style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
-      </div>
-      <!-- Type Filter -->
-      <div style="flex:1;min-width:140px;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">ประเภท</label>
-        <select id="actFilterType" onchange="filterActivities()"
-          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
-          <option value="">ทุกประเภท</option>
-          <option>ต้อนรับ</option>
-          <option>ดูแลเด็ก/คนแก่</option>
-          <option>งานฝีมือ</option>
-          <option>สอนหนังสือ</option>
-          <option>เล่านิทาน</option>
-          <option>บริการสุขภาพ</option>
-          <option>สิ่งแวดล้อม</option>
-          <option>งานช่าง</option>
-          <option>อื่นๆ</option>
-        </select>
-      </div>
-      <!-- Status Filter -->
-      <div style="flex:1;min-width:130px;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">สถานะ</label>
-        <select id="actFilterStatus" onchange="filterActivities()"
-          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
-          <option value="">ทุกสถานะ</option>
-          <option>เปิดรับ</option>
-          <option>ปิดรับ</option>
-          <option>เสร็จสิ้น</option>
-        </select>
-      </div>
-      <!-- Organizer Filter -->
-      <div style="flex:1;min-width:140px;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">หน่วยงาน</label>
-        <select id="actFilterOrg" onchange="filterActivities()"
-          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
-          <option value="">ทุกหน่วยงาน</option>
-        </select>
-      </div>
-      <!-- Reset -->
-      <div style="flex-shrink:0;">
-        <label style="font-size:12px;font-weight:600;color:transparent;display:block;margin-bottom:5px;">.</label>
-        <button onclick="resetActivityFilter()"
-          style="padding:10px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text-muted);font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">
-          ล้างตัวกรอง
-        </button>
-      </div>
-    </div>
-
-    <!-- Quick Filter Pills -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="quickFilterPills">
-      <button onclick="quickFilter('status','เปิดรับ')" class="filter-pill" data-key="status" data-val="เปิดรับ">🟢 เปิดรับสมัคร</button>
-      <button onclick="quickFilter('type','ต้อนรับ')" class="filter-pill" data-key="type" data-val="ต้อนรับ">🤝 ต้อนรับ</button>
-      <button onclick="quickFilter('type','บริการสุขภาพ')" class="filter-pill" data-key="type" data-val="บริการสุขภาพ">❤️ บริการสุขภาพ</button>
-      <button onclick="quickFilter('type','สิ่งแวดล้อม')" class="filter-pill" data-key="type" data-val="สิ่งแวดล้อม">🌱 สิ่งแวดล้อม</button>
-      <button onclick="quickFilter('type','สอนหนังสือ')" class="filter-pill" data-key="type" data-val="สอนหนังสือ">📚 สอนหนังสือ</button>
-      <button onclick="quickFilter('type','ดูแลเด็ก/คนแก่')" class="filter-pill" data-key="type" data-val="ดูแลเด็ก/คนแก่">👶 ดูแลเด็ก/คนแก่</button>
-      <button onclick="quickFilter('type','งานช่าง')" class="filter-pill" data-key="type" data-val="งานช่าง">🔧 งานช่าง</button>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>กิจกรรม</th>
-            <th>ประเภท</th>
-            <th>วันที่</th>
-            <th>เวลา</th>
-            <th>หน่วยงานจัด</th>
-            <th>ผู้สมัคร</th>
-            <th>สถานะ</th>
-            <th>จัดการ</th>
-          </tr>
-        </thead>
-        <tbody id="activitiesTable"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">กำลังโหลด...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ===== REGISTER TIME PAGE ===== -->
-  <div class="page" id="page-register-time">
     <div class="section-title">⏰ ฝากเวลาจิตอาสา</div>
     <div class="alert alert-info" style="margin-bottom:24px;">
       <span style="font-size:18px;">ℹ️</span>
@@ -745,13 +653,75 @@
     </div>
     <div class="form-card">
       <div class="tabs" style="margin-bottom:28px;">
-        <button class="tab-btn active" onclick="switchTab(this,'tab-self')">📝 สมัครร่วมกิจกรรม</button>
+        <button class="tab-btn active" onclick="switchTab(this,'tab-free')">⏱️ ฝากเวลาจิตอาสา</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-self')">📝 สมัครร่วมกิจกรรม</button>
         <button class="tab-btn" onclick="switchTab(this,'tab-record')">✅ บันทึกเวลาหลังกิจกรรม</button>
-        <button class="tab-btn" onclick="switchTab(this,'tab-free')">⏱️ ฝากเวลาอิสระ</button>
       </div>
 
+
+      <!-- Tab: ฝากเวลาอิสระ -->
+      <div id="tab-free">
+        <div class="alert alert-info" style="margin-bottom:20px;">
+          <span>ℹ️</span>
+          <div>สำหรับงานจิตอาสา<strong>นอกกิจกรรมที่จัดในระบบ</strong> เช่น ช่วยงานชุมชน ดูแลผู้สูงอายุ ฯลฯ ต้องได้รับการอนุมัติก่อนจึงจะนับชั่วโมง</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
+            <input id="free_code" type="text" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล</label>
+            <input id="free_name" type="text" readonly style="background:#f7fafc;">
+          </div>
+          <div class="form-group">
+            <label>ประเภทงานจิตอาสา <span class="req">*</span></label>
+            <select id="free_type" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+              <option value="">-- เลือกประเภท --</option>
+              <option>ดูแลเด็ก/คนแก่</option>
+              <option>งานฝีมือ</option>
+              <option>สอนหนังสือ</option>
+              <option>เล่านิทาน</option>
+              <option>บริการสุขภาพ</option>
+              <option>สิ่งแวดล้อม</option>
+              <option>งานช่าง</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ชื่อกิจกรรม/งานที่ทำ <span class="req">*</span></label>
+            <input id="free_title" type="text" placeholder="เช่น ช่วยดูแลผู้สูงอายุในชุมชน">
+          </div>
+          <div class="form-group">
+            <label>วันที่ทำกิจกรรม <span class="req">*</span></label>
+            <input id="free_date" type="date">
+          </div>
+          <div class="form-group">
+            <label>จำนวนชั่วโมง <span class="req">*</span></label>
+            <input id="free_hours" type="number" min="1" max="40" placeholder="ระบุ 1-40">
+            <div class="input-hint">ระบุ 1-40 ชั่วโมง</div>
+          </div>
+          <div class="form-group">
+            <label>สถานที่</label>
+            <input id="free_location" type="text" placeholder="เช่น ชุมชนบางรัก กรุงเทพฯ">
+          </div>
+          <div class="form-group">
+            <label>หน่วยงานที่จัด/ร่วม</label>
+            <input id="free_org" type="text" placeholder="เช่น มูลนิธิ... หรือ ชุมชน...">
+          </div>
+          <div class="form-group full">
+            <label>รายละเอียดงานที่ทำ <span class="req">*</span></label>
+            <textarea id="free_detail" rows="3" placeholder="อธิบายงานจิตอาสาที่ท่านได้ทำ..."
+              style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+          </div>
+        </div>
+        <div id="freeError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px 14px;font-size:13px;color:#9a1f14;margin-bottom:16px;"></div>
+        <div class="form-actions">
+          <button class="btn btn-green" onclick="submitFreeTime()">⏱️ ส่งคำขอฝากเวลา</button>
+          <button class="btn btn-gray" onclick="clearFreeForm()">ล้างข้อมูล</button>
+        </div>
+      </div>
       <!-- Tab: แสดงเจตนาสมัคร -->
-      <div id="tab-self">
+      <div id="tab-self" style="display:none;">
         <div class="form-grid">
           <div class="form-group">
             <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
@@ -814,67 +784,6 @@
           <div>การบันทึกเวลาจิตอาสาจะต้องได้รับการอนุมัติจากหน่วยงานจัดกิจกรรมก่อนจึงจะมีผล</div>
         </div>
 
-      <!-- Tab: ฝากเวลาอิสระ -->
-      <div id="tab-free" style="display:none;">
-        <div class="alert alert-info" style="margin-bottom:20px;">
-          <span>ℹ️</span>
-          <div>สำหรับงานจิตอาสา<strong>นอกกิจกรรมที่จัดในระบบ</strong> เช่น ช่วยงานชุมชน ดูแลผู้สูงอายุ ฯลฯ ต้องได้รับการอนุมัติก่อนจึงจะนับชั่วโมง</div>
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
-            <input id="free_code" type="text" readonly style="background:#f7fafc;">
-          </div>
-          <div class="form-group">
-            <label>ชื่อ-นามสกุล</label>
-            <input id="free_name" type="text" readonly style="background:#f7fafc;">
-          </div>
-          <div class="form-group">
-            <label>ประเภทงานจิตอาสา <span class="req">*</span></label>
-            <select id="free_type" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
-              <option value="">-- เลือกประเภท --</option>
-              <option>ดูแลเด็ก/คนแก่</option>
-              <option>งานฝีมือ</option>
-              <option>สอนหนังสือ</option>
-              <option>เล่านิทาน</option>
-              <option>บริการสุขภาพ</option>
-              <option>สิ่งแวดล้อม</option>
-              <option>งานช่าง</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>ชื่อกิจกรรม/งานที่ทำ <span class="req">*</span></label>
-            <input id="free_title" type="text" placeholder="เช่น ช่วยดูแลผู้สูงอายุในชุมชน">
-          </div>
-          <div class="form-group">
-            <label>วันที่ทำกิจกรรม <span class="req">*</span></label>
-            <input id="free_date" type="date">
-          </div>
-          <div class="form-group">
-            <label>จำนวนชั่วโมง <span class="req">*</span></label>
-            <input id="free_hours" type="number" min="1" max="40" placeholder="ระบุ 1-40">
-            <div class="input-hint">ระบุ 1-40 ชั่วโมง</div>
-          </div>
-          <div class="form-group">
-            <label>สถานที่</label>
-            <input id="free_location" type="text" placeholder="เช่น ชุมชนบางรัก กรุงเทพฯ">
-          </div>
-          <div class="form-group">
-            <label>หน่วยงานที่จัด/ร่วม</label>
-            <input id="free_org" type="text" placeholder="เช่น มูลนิธิ... หรือ ชุมชน...">
-          </div>
-          <div class="form-group full">
-            <label>รายละเอียดงานที่ทำ <span class="req">*</span></label>
-            <textarea id="free_detail" rows="3" placeholder="อธิบายงานจิตอาสาที่ท่านได้ทำ..."
-              style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:Sarabun,sans-serif;font-size:14px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
-          </div>
-        </div>
-        <div id="freeError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px 14px;font-size:13px;color:#9a1f14;margin-bottom:16px;"></div>
-        <div class="form-actions">
-          <button class="btn btn-green" onclick="submitFreeTime()">⏱️ ส่งคำขอฝากเวลา</button>
-          <button class="btn btn-gray" onclick="clearFreeForm()">ล้างข้อมูล</button>
-        </div>
-      </div>
         <div class="form-grid">
           <div class="form-group">
             <label>รหัสพนักงาน/นักศึกษา <span class="req">*</span></label>
@@ -1193,6 +1102,7 @@
     <button class="tab-btn" onclick="switchTab(this,'admin-cert')">🏆 เกียรติบัตร</button>
     <button class="tab-btn" onclick="switchTab(this,'admin-report')">📊 รายงาน</button>
     <button class="tab-btn" id="tab-manage-admins" style="display:none;" onclick="switchTab(this,'admin-manage')">⚙️ จัดการ Admin</button>
+    <button class="tab-btn" onclick="switchTab(this,'admin-announce')">📢 ประกาศ</button>
   </div>
   <div id="admin-approve">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -1294,6 +1204,48 @@
         <tbody id="adminListTable">
           <tr><td colspan="5" style="text-align:center;padding:24px;color:#6b7c93;">กำลังโหลด...</td></tr>
         </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ประกาศ -->
+  <div id="admin-announce" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:Prompt,sans-serif;font-size:18px;font-weight:600;color:#0d3d52;">📢 จัดการประกาศ</div>
+      <button onclick="showAddAnnounce()" style="background:#1a5f7a;color:white;border:none;padding:9px 18px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:13px;cursor:pointer;">➕ เพิ่มประกาศ</button>
+    </div>
+
+    <!-- Add Form -->
+    <div id="addAnnounceForm" style="display:none;background:white;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(26,95,122,.1);margin-bottom:24px;border:2px solid #e8f4f8;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:18px;color:#0d3d52;" id="announceFormTitle">➕ เพิ่มประกาศใหม่</div>
+      <input type="hidden" id="ann_edit_id" value="">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="grid-column:1/-1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ชื่อเรื่อง *</label><input id="ann_title" type="text" placeholder="หัวข้อประกาศ" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ประเภท *</label>
+          <select id="ann_type" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;">
+            <option value="ทั่วไป">📌 ทั่วไป</option>
+            <option value="ด่วน">🔴 ด่วน</option>
+            <option value="ข่าวสาร">📰 ข่าวสาร</option>
+          </select>
+        </div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">วันที่ประกาศ *</label><input id="ann_date" type="date" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">รายละเอียด *</label><textarea id="ann_detail" rows="4" placeholder="รายละเอียดประกาศ..." style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;"></textarea></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">URL รูปภาพ</label><input id="ann_image" type="url" placeholder="https://..." style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">ลิงก์อ่านต่อ</label><input id="ann_link" type="url" placeholder="https://..." style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">YouTube Video ID <span style="font-weight:400;color:#6b7c93;">(เช่น dQw4w9WgXcQ จาก youtube.com/watch?v=dQw4w9WgXcQ)</span></label><input id="ann_youtube" type="text" placeholder="Video ID เท่านั้น ไม่ต้องใส่ URL เต็ม" style="width:100%;padding:10px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      </div>
+      <div id="addAnnounceError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-top:12px;"></div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button onclick="submitAnnounce()" style="background:#1a5f7a;color:white;border:none;padding:11px 24px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;font-weight:600;cursor:pointer;">💾 บันทึก</button>
+        <button onclick="document.getElementById('addAnnounceForm').style.display='none'" style="background:#ecf0f1;color:#1a2332;border:none;padding:11px 20px;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+
+    <!-- Announce List -->
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ชื่อเรื่อง</th><th>ประเภท</th><th>วันที่</th><th>มีรูป</th><th>มี VDO</th><th>จัดการ</th></tr></thead>
+        <tbody id="announceListTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:#6b7c93;">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </div>
