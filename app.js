@@ -50,6 +50,7 @@ function showPage(id) {
   if (id === 'report') loadSummary();
   if (id === 'admin') { loadPendingLogs(); loadAdminActivities(); loadAdminReport(); }
   if (id === 'admin' && currentAdmin && currentAdmin.isSuperAdmin) { loadAdminList(); }
+  if (id === 'profile') loadProfile();
 }
 
 function switchTab(btn, targetId) {
@@ -138,6 +139,49 @@ function setLoggedIn(user) {
   document.getElementById('btn-nav-user').style.display   = 'inline-flex';
   document.getElementById('btn-nav-logout').style.display = 'inline-flex';
   document.getElementById('nav-username').textContent = user.firstName || user.code;
+
+  // Autofill register forms
+  var fullName = user.firstName + ' ' + user.lastName;
+  var fillMap = {
+    'reg_code': user.code,  'reg_name': fullName,
+    'reg_pos':  user.position, 'reg_dept': user.department,
+    'reg_phone': user.phone,   'reg_email': user.email,
+    'log_code': user.code,  'log_name': fullName
+  };
+  Object.keys(fillMap).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = fillMap[id] || '';
+  });
+
+  // Populate activity dropdowns
+  populateActivitySelects();
+}
+
+function populateActivitySelects() {
+  var opts = '<option value="">-- เลือกกิจกรรม --</option>';
+  allActivities.filter(function(a){ return a.status === 'เปิดรับ'; }).forEach(function(a) {
+    opts += '<option value="' + a.id + '" data-type="' + a.type + '" data-org="' + a.organizer + '" data-hours="' + a.hours + '">'
+          + a.name + ' (' + a.date + ')</option>';
+  });
+  var s1 = document.getElementById('activitySelect');
+  var s2 = document.getElementById('activitySelect2');
+  if (s1) s1.innerHTML = opts;
+  if (s2) s2.innerHTML = opts;
+}
+
+function onActivitySelect(sel, prefix) {
+  var opt = sel.options[sel.selectedIndex];
+  if (prefix === 'reg') {
+    var typeEl = document.getElementById('reg_type');
+    var hoursEl = document.getElementById('reg_hours');
+    if (typeEl)  typeEl.value  = opt.dataset.type  || '';
+    if (hoursEl && opt.dataset.hours) hoursEl.value = opt.dataset.hours;
+  } else if (prefix === 'log') {
+    var orgEl = document.getElementById('log_org');
+    var hoursEl2 = document.getElementById('log_hours');
+    if (orgEl)    orgEl.value   = opt.dataset.org   || '';
+    if (hoursEl2 && opt.dataset.hours) hoursEl2.value = opt.dataset.hours;
+  }
 }
 
 function userLogout() {
@@ -197,6 +241,9 @@ function loadActivities() {
   callAPI('getActivities').then(function(res) {
     if (!res.success) return;
     allActivities = res.data;
+
+    // Populate activity dropdowns in register form
+    if (currentUser) populateActivitySelects();
 
     // Populate organizer dropdown
     var orgSel = document.getElementById('actFilterOrg');
@@ -302,9 +349,83 @@ function loadHistory(code) {
   });
 }
 
+function submitRegister() {
+  if (!currentUser) { openModal('userLoginModal'); return; }
+  var err = document.getElementById('regError');
+  var actId = document.getElementById('activitySelect').value;
+  var hours = document.getElementById('reg_hours').value;
+  if (!actId) { err.textContent='กรุณาเลือกกิจกรรม'; err.style.display='block'; return; }
+  if (!hours || hours < 1 || hours > 40) { err.textContent='กรุณาระบุชั่วโมง 1-40'; err.style.display='block'; return; }
+  err.style.display = 'none';
+
+  var sel = document.getElementById('activitySelect');
+  var opt = sel.options[sel.selectedIndex];
+  callAPI('registerTime', {
+    activityId: actId,
+    volunteerCode: currentUser.code,
+    fullName: currentUser.firstName + ' ' + currentUser.lastName,
+    date: new Date().toISOString().split('T')[0],
+    startTime: '',
+    hours: hours,
+    organizer: opt.dataset.org || '',
+    note: document.getElementById('reg_reason').value
+  }).then(function(res) {
+    if (res.success) {
+      showToast('✅ สมัครกิจกรรมสำเร็จ รอการอนุมัติ');
+      clearRegisterForm();
+      showPage('history');
+    } else {
+      err.textContent = res.message;
+      err.style.display = 'block';
+    }
+  });
+}
+
 function submitTimeLog() {
   if (!currentUser) { openModal('userLoginModal'); return; }
-  showSuccess();
+  var err = document.getElementById('logError');
+  var actId = document.getElementById('activitySelect2').value;
+  var date  = document.getElementById('log_date').value;
+  var hours = document.getElementById('log_hours').value;
+  var start = document.getElementById('log_start').value;
+  var org   = document.getElementById('log_org').value;
+  var note  = document.getElementById('log_note').value;
+
+  if (!actId) { err.textContent='กรุณาเลือกกิจกรรม'; err.style.display='block'; return; }
+  if (!date)  { err.textContent='กรุณาระบุวันที่'; err.style.display='block'; return; }
+  if (!hours || hours < 1 || hours > 40) { err.textContent='กรุณาระบุชั่วโมง 1-40'; err.style.display='block'; return; }
+  err.style.display = 'none';
+
+  callAPI('registerTime', {
+    activityId: actId,
+    volunteerCode: currentUser.code,
+    fullName: currentUser.firstName + ' ' + currentUser.lastName,
+    date: date, startTime: start, hours: hours,
+    organizer: org, note: note
+  }).then(function(res) {
+    if (res.success) {
+      showToast('✅ บันทึกเวลาสำเร็จ รอการอนุมัติ');
+      clearLogForm();
+      showPage('history');
+    } else {
+      err.textContent = res.message;
+      err.style.display = 'block';
+    }
+  });
+}
+
+function clearRegisterForm() {
+  ['activitySelect','reg_type','reg_hours','reg_reason'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('regError').style.display = 'none';
+}
+
+function clearLogForm() {
+  ['activitySelect2','log_date','log_hours','log_start','log_org','log_note'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('logError').style.display = 'none';
 }
 
 // ── Admin ──────────────────────────────────────────────────
@@ -679,6 +800,66 @@ function deleteAdmin(username) {
       if (res.success) { showToast('ลบ Admin สำเร็จ'); loadAdminList(); }
       else alert(res.message);
     });
+}
+
+// ── Profile ────────────────────────────────────────────────
+function loadProfile() {
+  if (!currentUser) return;
+  var u = currentUser;
+
+  // Basic info
+  var s = function(id, val) { var e = document.getElementById(id); if (e && val !== undefined) e.textContent = val; };
+  s('profileName', u.firstName + ' ' + u.lastName);
+  document.getElementById('profileDetail').innerHTML =
+    'รหัส: ' + u.code + ' | ' + u.department + ' | ' + u.position +
+    '<br>อีเมล: ' + (u.email || '-') + ' | โทร: ' + (u.phone || '-');
+
+  // Avatar emoji by type
+  var avatarEl = document.getElementById('profileAvatar');
+  if (avatarEl) avatarEl.textContent = u.type === 'บุคลากร' ? '👨‍💼' : '🎓';
+
+  // Type badge
+  var typeIcon = u.type === 'บุคลากร' ? '👔' : '🎓';
+  s('profileType', typeIcon + ' ' + u.type);
+
+  // Load history for stats
+  callAPI('getHistory', { code: u.code }).then(function(res) {
+    var total    = 0;
+    var joined   = 0;
+    var pending  = 0;
+    var certs    = 0;
+
+    if (res.success) {
+      res.data.forEach(function(log) {
+        if (log.status === 'อนุมัติ') {
+          total += Number(log.hours);
+          joined++;
+        } else if (log.status === 'รออนุมัติ') {
+          pending++;
+        }
+      });
+    }
+
+    // Hours & progress bar
+    var targetHours = 40;
+    var pct = Math.min(Math.round((total / targetHours) * 100), 100);
+    s('profileHours', '⏱️ ' + total + ' ชม.');
+    s('profileStatHours', total + ' / ' + targetHours + ' ชม.');
+    s('profileStatJoined', joined + ' ครั้ง');
+    s('profileStatPending', pending + ' ครั้ง');
+
+    var bar = document.getElementById('profileProgressBar');
+    if (bar) bar.style.width = pct + '%';
+
+    // Level badge
+    var level = '';
+    if      (total >= 40) { level = '🥇 ระดับทอง';    certs = 3; }
+    else if (total >= 24) { level = '🥈 ระดับเงิน';   certs = 2; }
+    else if (total >= 8)  { level = '🥉 ระดับทองแดง'; certs = 1; }
+    else                  { level = '⭐ เริ่มต้น'; }
+    s('profileLevel', level);
+    s('profileStatCerts', certs + ' ใบ');
+  });
 }
 
 // ── Reset Password ────────────────────────────────────────
