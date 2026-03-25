@@ -21,32 +21,15 @@ function showUserSignup() { openModal('userSignupModal'); }
 function showAdminLogin() { openModal('adminLoginModal'); }
 
 // ── API ────────────────────────────────────────────────────
-var WRITE_ACTIONS = [
-  'registerTime','signupUser','loginUser','loginAdmin','resetPassword',
-  'verifyResetIdentity','addVolunteer','updateLogStatus','addActivity',
-  'updateActivityStatus','addAnnouncement','updateAnnouncement','deleteAnnouncement',
-  'addAdmin','updateAdminStatus','deleteAdmin','addReward','updateReward','deleteReward',
-  'addFeedback','issueCertificates'
-];
-
 function callAPI(action, params) {
-  var isWrite = WRITE_ACTIONS.indexOf(action) !== -1;
-  if (isWrite && params) {
-    // POST — handles Thai text and long strings properly
-    var body = Object.assign({ action: action }, params);
-    return fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    .then(function(r) { return r.json(); })
-    .catch(function() { return { success: false, message: 'เชื่อมต่อไม่ได้' }; });
-  }
-  // GET — for read operations
-  var url = APPS_SCRIPT_URL + '?action=' + action;
+  // Use GET with proper URL encoding for all requests
+  // Apps Script handles GET params via e.parameter
+  var url = APPS_SCRIPT_URL + '?action=' + encodeURIComponent(action);
   if (params) {
     Object.keys(params).forEach(function(k) {
-      url += '&' + k + '=' + encodeURIComponent(params[k]);
+      if (params[k] !== undefined && params[k] !== null) {
+        url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(String(params[k]));
+      }
     });
   }
   return fetch(url)
@@ -383,7 +366,7 @@ function loadHistory(code) {
   s('histDept',   u.department);
 
   callAPI('getHistory', { code: code }).then(function(res) {
-    var tbody  = document.querySelector('#historyTable tbody');
+    var tbody  = document.getElementById('historyTable');
     var tl     = document.getElementById('historyTimeline');
     var total  = 0;
     var joined = 0;
@@ -843,7 +826,7 @@ function quickFilter(key, val) {
 }
 
 function renderActivitiesTable(data) {
-  var tbody = document.querySelector('#activitiesTable tbody');
+  var tbody = document.getElementById('activitiesTable');
   if (!tbody) return;
   tbody.innerHTML = '';
 
