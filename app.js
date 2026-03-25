@@ -324,9 +324,22 @@ function loadActivities() {
   });
 }
 
-function goRegister() {
+function goRegister(actId) {
   if (!currentUser) { openModal('userLoginModal'); return; }
   showPage('register-time');
+  // Switch to tab สมัครร่วมกิจกรรม
+  setTimeout(function() {
+    var btn = document.querySelector('.tab-btn[onclick*="tab-self"]');
+    if (btn) btn.click();
+    // Pre-select activity if actId provided
+    if (actId) {
+      var sel = document.getElementById('activitySelect');
+      if (sel) {
+        sel.value = actId;
+        onActivitySelect(sel, 'reg');
+      }
+    }
+  }, 50);
 }
 
 function loadSummary() {
@@ -779,7 +792,7 @@ function renderActivitiesTable(data) {
   data.forEach(function(a) {
     var sc  = a.status === 'เปิดรับ' ? 'pill-green' : a.status === 'เสร็จสิ้น' ? 'pill-blue' : 'pill-red';
     var btn = a.status === 'เปิดรับ'
-      ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister()">สมัคร</button>'
+      ? '<button class="btn btn-primary" style="padding:6px 16px;font-size:13px;" onclick="goRegister(' + act.id + ')">สมัคร</button>'
       : '<button class="btn btn-gray" style="padding:6px 16px;font-size:13px;" disabled>ปิดแล้ว</button>';
     var tr = document.createElement('tr');
     tr.innerHTML = '<td><strong>' + a.name + '</strong></td>'
