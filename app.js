@@ -379,43 +379,21 @@ function loadHistory(code) {
       return;
     }
 
-    // แยกประเภท: กิจกรรมในระบบ (activityId != 0) vs ฝากเวลาอิสระ (activityId == 0)
+    // แยกประเภท
     var actLogs  = res.data.filter(function(l) { return String(l.activityId) !== '0'; });
     var freeLogs = res.data.filter(function(l) { return String(l.activityId) === '0'; });
 
-    // คำนวณสถิติจากทุกรายการ
-    res.data.forEach(function(log) {
-      if (log.status === 'อนุมัติ') {
-        total += Number(log.hours);
-        if (String(log.activityId) !== '0') joined++;
-      } else if (log.status === 'รออนุมัติ') {
-        pending++;
-      }
+    // สถิติ: นับเฉพาะกิจกรรมจริง (actLogs) เท่านั้น
+    actLogs.forEach(function(log) {
+      if (log.status === 'อนุมัติ') { total += Number(log.hours); joined++; }
+      else if (log.status === 'รออนุมัติ') pending++;
     });
 
-    // ── Tab ข. เวลาฝาก (ทั้งหมด) ──────────────────────────
-    if (tbody) {
-      tbody.innerHTML = '';
-      var runningTotal = 0;
-      res.data.forEach(function(log) {
-        if (log.status === 'อนุมัติ') runningTotal += Number(log.hours);
-        var sc = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
-        var isFree = log.activityId == 0;
-        var tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + fmtDate(log.date) + '</td>'
-          + '<td>' + log.organizer + (isFree ? ' <span style="font-size:11px;background:#e8f4f8;color:#1a5f7a;padding:1px 6px;border-radius:10px;">อิสระ</span>' : '') + '</td>'
-          + '<td>' + log.hours + ' ชม.</td>'
-          + '<td>' + runningTotal + ' ชม.</td>'
-          + '<td><span class="status-pill ' + sc + '">' + log.status + '</span></td>';
-        tbody.appendChild(tr);
-      });
-    }
-
-    // ── Tab ก. ข้อมูลกิจกรรม (เฉพาะกิจกรรมในระบบ) ─────────
+    // ── Tab ก. กิจกรรมในระบบ (activityId ≠ 0 เท่านั้น) ────
     if (tl) {
       tl.innerHTML = '';
       if (!actLogs.length) {
-        tl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีประวัติการเข้าร่วมกิจกรรมในระบบ</div>';
+        tl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">ยังไม่มีประวัติการเข้าร่วมกิจกรรม</div>';
       } else {
         actLogs.slice().reverse().forEach(function(log) {
           var dotColor = log.status === 'อนุมัติ' ? '#27ae60' : '#e8a838';
@@ -423,29 +401,22 @@ function loadHistory(code) {
           var pill     = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
           var item     = document.createElement('div');
           item.className = 'timeline-item';
-
           var dot = document.createElement('div');
           dot.className = 'timeline-dot';
           dot.style.background = dotColor;
           item.appendChild(dot);
-
           var body = document.createElement('div');
           body.className = 'timeline-content';
-
           var header = document.createElement('div');
           header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;';
-
           var h4 = document.createElement('h4');
-          h4.textContent = icon + ' ' + (log.pledgeTitle || log.organizer);
-
+          h4.textContent = icon + ' ' + log.organizer;
           var badge = document.createElement('span');
           badge.className = 'status-pill ' + pill;
           badge.textContent = log.status;
-
           header.appendChild(h4);
           header.appendChild(badge);
           body.appendChild(header);
-
           var meta = document.createElement('div');
           meta.style.cssText = 'font-size:13px;color:var(--text-muted);margin-top:4px;';
           meta.textContent = '📅 ' + fmtDate(log.date) + '   ⏱️ ' + log.hours + ' ชม.';
@@ -454,55 +425,23 @@ function loadHistory(code) {
           tl.appendChild(item);
         });
       }
+    }
 
-      // แสดงฝากเวลาอิสระแยกส่วน (ถ้ามี)
-      if (freeLogs.length) {
-        var freeTitle = document.createElement('div');
-        freeTitle.style.cssText = 'font-weight:600;color:#1a5f7a;margin:20px 0 10px;padding-left:8px;border-left:3px solid #1a5f7a;';
-        freeTitle.textContent = '⏱️ ฝากเวลาอิสระ';
-        tl.appendChild(freeTitle);
-
+    // ── Tab ข. เวลาฝาก (freeLogs เท่านั้น สถานะ = "บันทึกแล้ว") ──
+    if (tbody) {
+      tbody.innerHTML = '';
+      if (!freeLogs.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">ยังไม่มีการฝากเวลา</td></tr>';
+      } else {
         freeLogs.slice().reverse().forEach(function(log) {
-          var dotColor = log.status === 'อนุมัติ' ? '#27ae60' : '#e8a838';
-          var icon     = log.status === 'อนุมัติ' ? '✅' : '⏳';
-          var pill     = log.status === 'อนุมัติ' ? 'pill-green' : 'pill-orange';
-          var item     = document.createElement('div');
-          item.className = 'timeline-item';
-
-          var dot = document.createElement('div');
-          dot.className = 'timeline-dot';
-          dot.style.background = dotColor;
-          item.appendChild(dot);
-
-          var body = document.createElement('div');
-          body.className = 'timeline-content';
-
-          var header = document.createElement('div');
-          header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;';
-
-          var h4 = document.createElement('h4');
-          h4.textContent = icon + ' ' + (log.pledgeTitle || log.organizer);
-
-          var badge = document.createElement('span');
-          badge.className = 'status-pill ' + pill;
-          badge.textContent = log.status;
-
-          header.appendChild(h4);
-          header.appendChild(badge);
-          body.appendChild(header);
-
-          var meta = document.createElement('div');
-          meta.style.cssText = 'font-size:13px;color:var(--text-muted);margin-top:4px;';
-          meta.textContent = '⏱️ ' + log.hours + ' ชม.  |  ประเภท: ' + (log.pledgeType||log.organizer);
-          body.appendChild(meta);
-          if (log.pledgeDetail) {
-            var det = document.createElement('div');
-            det.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:2px;font-style:italic;';
-            det.textContent = log.pledgeDetail.substring(0,80) + (log.pledgeDetail.length>80?'...':'');
-            body.appendChild(det);
-          }
-          item.appendChild(body);
-          tl.appendChild(item);
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + fmtDate(log.date) + '</td>'
+            + '<td>' + (log.pledgeTitle || log.organizer)
+            + ' <span style="font-size:11px;background:#e8f4f8;color:#1a5f7a;padding:1px 6px;border-radius:10px;">' + (log.pledgeType||log.organizer) + '</span></td>'
+            + '<td>' + log.hours + ' ชม.</td>'
+            + '<td>-</td>'
+            + '<td><span class="status-pill pill-green">บันทึกแล้ว</span></td>';
+          tbody.appendChild(tr);
         });
       }
     }
