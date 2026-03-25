@@ -615,9 +615,13 @@ function loadPendingLogs() {
       var tdBtn = document.createElement('td');
       tdBtn.appendChild(btnA); tdBtn.appendChild(btnR);
 
+      var orgLabel = log.isPledge
+        ? '<span style="font-size:11px;background:#e8f4f8;color:#1a5f7a;padding:2px 6px;border-radius:10px;margin-left:4px;">เจตนา</span> ' + (log.pledgeType||log.organizer)
+        : log.organizer;
       tr.innerHTML = '<td><strong>' + log.fullName + '</strong></td>'
-        + '<td>' + log.volunteerCode + '</td><td>' + log.organizer + '</td>'
-        + '<td>' + log.date + '</td><td><strong>' + log.hours + ' ชม.</strong></td>'
+        + '<td>' + log.volunteerCode + '</td>'
+        + '<td>' + orgLabel + (log.pledgeTitle ? '<br><span style="font-size:11px;color:#6b7c93;">' + log.pledgeTitle + '</span>' : '') + '</td>'
+        + '<td>' + fmtDate(log.date) + '</td><td><strong>' + log.hours + ' ชม.</strong></td>'
         + '<td><span class="status-pill pill-orange">รออนุมัติ</span></td>';
       tr.appendChild(tdBtn);
       tbody.appendChild(tr);
@@ -1047,7 +1051,9 @@ function submitFreeTime() {
     date: new Date().toISOString().split('T')[0],
     startTime: '', hours: hours,
     organizer: type,
-    note: note
+    note: note,
+    pledgeTitle:  title,
+    pledgeDetail: detail
   }).then(function(res) {
     if (res.success) {
       showToast('💡 แสดงเจตนาสำเร็จ รอการอนุมัติ');
