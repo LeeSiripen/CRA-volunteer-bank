@@ -1067,6 +1067,18 @@ function clearFreeForm() {
   document.getElementById('freeError').style.display = 'none';
 }
 
+// ── Password Validation ───────────────────────────────────
+function validatePassword(pass) {
+  if (!pass || pass.length < 6) {
+    return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+  }
+  var letters = (pass.match(/[a-zA-Zก-ฮ]/g) || []).length;
+  if (letters < 3) {
+    return 'รหัสผ่านต้องมีตัวอักษรอย่างน้อย 3 ตัว (ภาษาไทยหรืออังกฤษ)';
+  }
+  return null; // valid
+}
+
 // ── Reset Password ────────────────────────────────────────
 var resetVerifiedCode = null;
 
@@ -1114,10 +1126,8 @@ function submitResetPassword() {
   var pass2 = document.getElementById('reset_newpass2').value;
   var err   = document.getElementById('resetStep2Error');
 
-  if (!pass || pass.length < 6) {
-    err.textContent = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-    err.style.display = 'block'; return;
-  }
+  var passErr2 = validatePassword(pass);
+  if (passErr2) { err.textContent = passErr2; err.style.display = 'block'; return; }
   if (pass !== pass2) {
     err.textContent = 'รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่';
     err.style.display = 'block'; return;

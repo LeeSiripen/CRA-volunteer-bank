@@ -433,7 +433,7 @@
   <div style="background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
     <div style="text-align:center;margin-bottom:24px;"><div style="font-size:48px;">🌿</div><h2 style="font-family:Prompt,sans-serif;font-size:22px;color:#0d3d52;margin-top:8px;">เข้าสู่ระบบ</h2></div>
     <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">รหัสพนักงาน / นักศึกษา</label><input id="loginCode" type="text" placeholder="เช่น 6401001234" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;"></div>
-    <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">รหัสผ่าน</label><input id="loginPass" type="password" placeholder="รหัสผ่าน" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doUserLogin()"></div>
+    <div style="margin-bottom:14px;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">รหัสผ่าน</label><input id="loginPass" type="password" placeholder="รหัสผ่าน (ต้องมีตัวอักษรอย่างน้อย 3 ตัว)" style="width:100%;padding:12px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doUserLogin()"></div>
     <div id="loginError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-bottom:14px;"></div>
     <div style="display:flex;gap:12px;"><button onclick="doUserLogin()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#1a5f7a;color:white;font-family:Sarabun,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">เข้าสู่ระบบ</button><button onclick="closeModal('userLoginModal')" style="padding:13px 20px;border-radius:12px;border:none;background:#ecf0f1;color:#1a2332;font-family:Sarabun,sans-serif;font-size:15px;cursor:pointer;">ยกเลิก</button></div>
     <div style="text-align:center;margin-top:12px;font-size:13px;color:#6b7c93;">
@@ -459,7 +459,7 @@
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">หน่วยงาน *</label><input id="su_dept" type="text" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">เบอร์โทร</label><input id="su_phone" type="tel" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">อีเมล</label><input id="su_email" type="email" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
-      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">รหัสผ่าน * (6+ ตัว)</label><input id="su_pass" type="password" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">รหัสผ่าน * <span style="font-weight:400;color:#6b7c93;">(6+ ตัว มีตัวอักษรอย่างน้อย 3 ตัว)</span></label><input id="su_pass" type="password" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">ยืนยันรหัสผ่าน *</label><input id="su_pass2" type="password" style="width:100%;padding:9px;border:1.5px solid #d1dbe8;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;outline:none;box-sizing:border-box;"></div>
     </div>
     <div id="signupError" style="display:none;background:#ffe0de;border:1.5px solid #f5b8b4;border-radius:8px;padding:10px;font-size:13px;color:#9a1f14;margin-top:12px;"></div>
@@ -518,7 +518,7 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div>
-          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">รหัสผ่านใหม่ * (อย่างน้อย 6 ตัว)</label>
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px;">รหัสผ่านใหม่ * <span style="font-weight:400;color:#6b7c93;">(6+ ตัว มีตัวอักษรอย่างน้อย 3 ตัว)</span></label>
           <input id="reset_newpass" type="password" placeholder="รหัสผ่านใหม่"
             style="width:100%;padding:11px 14px;border:1.5px solid #d1dbe8;border-radius:10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
         </div>
