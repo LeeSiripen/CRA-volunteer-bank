@@ -21,7 +21,28 @@ function showUserSignup() { openModal('userSignupModal'); }
 function showAdminLogin() { openModal('adminLoginModal'); }
 
 // ── API ────────────────────────────────────────────────────
+var WRITE_ACTIONS = [
+  'registerTime','signupUser','loginUser','loginAdmin','resetPassword',
+  'verifyResetIdentity','addVolunteer','updateLogStatus','addActivity',
+  'updateActivityStatus','addAnnouncement','updateAnnouncement','deleteAnnouncement',
+  'addAdmin','updateAdminStatus','deleteAdmin','addReward','updateReward','deleteReward',
+  'addFeedback','issueCertificates'
+];
+
 function callAPI(action, params) {
+  var isWrite = WRITE_ACTIONS.indexOf(action) !== -1;
+  if (isWrite && params) {
+    // POST — handles Thai text and long strings properly
+    var body = Object.assign({ action: action }, params);
+    return fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    .then(function(r) { return r.json(); })
+    .catch(function() { return { success: false, message: 'เชื่อมต่อไม่ได้' }; });
+  }
+  // GET — for read operations
   var url = APPS_SCRIPT_URL + '?action=' + action;
   if (params) {
     Object.keys(params).forEach(function(k) {
@@ -376,13 +397,17 @@ function loadHistory(code) {
     }
 
     // แยกประเภท: กิจกรรมในระบบ (activityId != 0) vs ฝากเวลาอิสระ (activityId == 0)
-    var actLogs  = res.data.filter(function(l) { return l.activityId != 0; });
-    var freeLogs = res.data.filter(function(l) { return l.activityId == 0; });
+    var actLogs  = res.data.filter(function(l) { return String(l.activityId) !== '0'; });
+    var freeLogs = res.data.filter(function(l) { return String(l.activityId) === '0'; });
 
     // คำนวณสถิติจากทุกรายการ
     res.data.forEach(function(log) {
-      if (log.status === 'อนุมัติ') { total += Number(log.hours); joined++; }
-      else if (log.status === 'รออนุมัติ') pending++;
+      if (log.status === 'อนุมัติ') {
+        total += Number(log.hours);
+        if (String(log.activityId) !== '0') joined++;
+      } else if (log.status === 'รออนุมัติ') {
+        pending++;
+      }
     });
 
     // ── Tab ข. เวลาฝาก (ทั้งหมด) ──────────────────────────
@@ -428,7 +453,7 @@ function loadHistory(code) {
           header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;';
 
           var h4 = document.createElement('h4');
-          h4.textContent = icon + ' ' + log.organizer;
+          h4.textContent = icon + ' ' + (log.pledgeTitle || log.organizer);
 
           var badge = document.createElement('span');
           badge.className = 'status-pill ' + pill;
@@ -473,7 +498,7 @@ function loadHistory(code) {
           header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;';
 
           var h4 = document.createElement('h4');
-          h4.textContent = icon + ' ' + log.organizer;
+          h4.textContent = icon + ' ' + (log.pledgeTitle || log.organizer);
 
           var badge = document.createElement('span');
           badge.className = 'status-pill ' + pill;
@@ -485,8 +510,14 @@ function loadHistory(code) {
 
           var meta = document.createElement('div');
           meta.style.cssText = 'font-size:13px;color:var(--text-muted);margin-top:4px;';
-          meta.textContent = '📅 ' + fmtDate(log.date) + '   ⏱️ ' + log.hours + ' ชม.';
+          meta.textContent = '⏱️ ' + log.hours + ' ชม.  |  ประเภท: ' + (log.pledgeType||log.organizer);
           body.appendChild(meta);
+          if (log.pledgeDetail) {
+            var det = document.createElement('div');
+            det.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:2px;font-style:italic;';
+            det.textContent = log.pledgeDetail.substring(0,80) + (log.pledgeDetail.length>80?'...':'');
+            body.appendChild(det);
+          }
           item.appendChild(body);
           tl.appendChild(item);
         });
